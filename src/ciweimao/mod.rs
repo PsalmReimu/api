@@ -32,6 +32,7 @@ use crate::{
     VolumeInfo, VolumeInfos,
 };
 
+/// Ciweimao client, use it to access Apis
 pub struct CiweimaoClient {
     proxy: Option<Url>,
     no_proxy: bool,
@@ -345,7 +346,7 @@ impl Client for CiweimaoClient {
             .reader_info;
 
         let user_info = UserInfo {
-            nick_name: data.reader_name,
+            nickname: data.reader_name,
         };
 
         info!("Time spent on `/reader/get_my_info`: {}", timing.elapsed()?);
@@ -400,7 +401,7 @@ impl Client for CiweimaoClient {
             .expect("The category index does not exist")
             .to_string();
 
-        let add_time = if !data.newtime.is_empty() {
+        let create_time = if !data.newtime.is_empty() {
             Some(NaiveDateTime::from_str(&data.newtime.replace(' ', "T"))?)
         } else {
             None
@@ -419,9 +420,9 @@ impl Client for CiweimaoClient {
             introduction,
             word_count: Some(data.total_word_count.parse::<u32>().location(here!())?),
             finished: Some(finished),
-            add_time,
+            create_time,
             update_time: Some(update_time),
-            type_name: Some(type_name),
+            genre: Some(type_name),
             tags,
         };
 
@@ -475,9 +476,9 @@ impl Client for CiweimaoClient {
                     ),
                     title: chapter.chapter_title,
                     word_count: Some(chapter.word_count.parse::<u16>().location(here!())?),
-                    time: Some(time),
+                    update_time: Some(time),
                     is_vip: None,
-                    auth_access: Some(chapter.auth_access == "1"),
+                    accessible: Some(chapter.auth_access == "1"),
                     is_valid: Some(chapter.is_valid == "1"),
                 };
 

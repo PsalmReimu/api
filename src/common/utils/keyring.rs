@@ -2,12 +2,14 @@ use keyring::Entry;
 
 use crate::{here, Error, ErrorLocation, Location};
 
+/// Access the Keyring of the platform
 #[must_use]
 pub struct Keyring {
     entry: Entry,
 }
 
 impl Keyring {
+    /// Create a Keyring
     pub fn new<T, E>(app_name: T, username: E) -> Self
     where
         T: AsRef<str>,
@@ -19,10 +21,12 @@ impl Keyring {
         Self { entry }
     }
 
+    /// Get password
     pub fn get_password(&self) -> Result<String, Error> {
         Ok(self.entry.get_password()?)
     }
 
+    /// Set password
     pub fn set_password<T>(&self, password: T) -> Result<(), Error>
     where
         T: AsRef<str>,
@@ -33,6 +37,7 @@ impl Keyring {
             .location(here!())?)
     }
 
+    /// Delete password
     pub fn delete_password(&self) -> Result<(), Error> {
         Ok(self.entry.delete_password()?)
     }

@@ -40,6 +40,7 @@ impl CiweimaoClient {
 
     const AES_KEY: &str = "zG2nSeEfSHfvTCHy5LCcqtBbQehKNLXn";
 
+    /// Create a ciweimao client
     pub async fn new() -> Result<Self, Error> {
         let (account, login_token) = CiweimaoClient::load_config_file()?;
 

@@ -20,6 +20,7 @@ use crate::{
     VolumeInfo, VolumeInfos,
 };
 
+/// Sfacg client, use it to access Apis
 #[must_use]
 pub struct SfacgClient {
     proxy: Option<Url>,
@@ -353,7 +354,7 @@ impl Client for SfacgClient {
         response.status.check().location(here!())?;
 
         let info = UserInfo {
-            nick_name: response
+            nickname: response
                 .data
                 .expect("Api error, no `data` field")
                 .nick_name
@@ -423,9 +424,9 @@ impl Client for SfacgClient {
             introduction,
             word_count: Some(word_count),
             finished: Some(novel_data.is_finish),
-            add_time: Some(novel_data.add_time),
+            create_time: Some(novel_data.add_time),
             update_time: Some(novel_data.last_update_time),
-            type_name: Some(novel_data.expand.type_name.trim().to_string()),
+            genre: Some(novel_data.expand.type_name.trim().to_string()),
             tags,
         };
 
@@ -464,7 +465,7 @@ impl Client for SfacgClient {
             };
 
             for chapter in volume.chapter_list {
-                let time = if chapter.update_time.is_some() {
+                let update_time = if chapter.update_time.is_some() {
                     chapter.update_time
                 } else {
                     Some(chapter.add_time)
@@ -474,9 +475,9 @@ impl Client for SfacgClient {
                     identifier: Identifier::Id(chapter.chap_id),
                     title: chapter.title.trim().to_string(),
                     word_count: Some(chapter.char_count),
-                    time,
+                    update_time,
                     is_vip: Some(chapter.is_vip),
-                    auth_access: Some(chapter.need_fire_money == 0),
+                    accessible: Some(chapter.need_fire_money == 0),
                     is_valid: Some(true),
                 };
 

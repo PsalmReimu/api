@@ -4,6 +4,7 @@ use anyhow::{Context, Result};
 use http::StatusCode;
 use thiserror::Error;
 
+/// novel-api error
 #[must_use]
 #[derive(Debug, Error)]
 pub enum Error {
@@ -55,6 +56,7 @@ pub enum Error {
     Http { code: StatusCode, msg: String },
 }
 
+/// Source code location
 #[must_use]
 pub struct Location {
     pub file: &'static str,
@@ -63,6 +65,7 @@ pub struct Location {
     pub column: u32,
 }
 
+/// Add source code location
 pub trait ErrorLocation<T, E> {
     fn location(self, loc: Location) -> Result<T>;
 }
@@ -82,6 +85,7 @@ where
     }
 }
 
+/// Macros for creating source code location
 #[macro_export]
 macro_rules! here {
     () => {

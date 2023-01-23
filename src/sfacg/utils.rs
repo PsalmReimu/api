@@ -22,6 +22,7 @@ impl SfacgClient {
 
     const SALT: &str = "FMLxgOdsfxmN!Dt4";
 
+    /// Create a sfacg client
     pub async fn new() -> Result<Self, Error> {
         Ok(Self {
             proxy: None,

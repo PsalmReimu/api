@@ -1,3 +1,5 @@
+//! Apis of sfacg and ciweimao
+
 mod ciweimao;
 mod common;
 mod sfacg;

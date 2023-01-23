@@ -71,7 +71,7 @@ impl NovelDB {
 
     pub(crate) async fn find_text(&self, info: &ChapterInfo) -> Result<FindTextResult, Error> {
         let identifier = info.identifier.to_string();
-        let time = info.time;
+        let time = info.update_time;
 
         let model = Text::find_by_id(identifier)
             .one(&self.db)
@@ -106,7 +106,7 @@ impl NovelDB {
     {
         let model = entity::text::ActiveModel {
             identifier: sea_orm::Set(info.identifier.to_string()),
-            date_time: sea_orm::Set(info.time),
+            date_time: sea_orm::Set(info.update_time),
             text: sea_orm::Set(
                 zstd_compress(text.as_ref().as_bytes())
                     .await
@@ -124,7 +124,7 @@ impl NovelDB {
     {
         let model = entity::text::ActiveModel {
             identifier: sea_orm::Set(info.identifier.to_string()),
-            date_time: sea_orm::Set(info.time),
+            date_time: sea_orm::Set(info.update_time),
             text: sea_orm::Set(
                 zstd_compress(text.as_ref().as_bytes())
                     .await
@@ -223,10 +223,10 @@ mod tests {
                 identifier: Identifier::Id(0),
                 title: Default::default(),
                 is_vip: Default::default(),
-                auth_access: Default::default(),
+                accessible: Default::default(),
                 is_valid: Default::default(),
                 word_count: Default::default(),
-                time: Default::default(),
+                update_time: Default::default(),
             }
         }
     }
@@ -240,13 +240,13 @@ mod tests {
 
         let chapter_info_old = ChapterInfo {
             identifier: Identifier::Id(0),
-            time: Some(NaiveDateTime::from_str("2020-07-08T15:25:15")?),
+            update_time: Some(NaiveDateTime::from_str("2020-07-08T15:25:15")?),
             ..Default::default()
         };
 
         let chapter_info_new = ChapterInfo {
             identifier: Identifier::Id(0),
-            time: Some(NaiveDateTime::from_str("2020-07-08T15:25:17")?),
+            update_time: Some(NaiveDateTime::from_str("2020-07-08T15:25:17")?),
             ..Default::default()
         };
 
