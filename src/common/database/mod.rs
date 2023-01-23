@@ -64,6 +64,11 @@ impl NovelDB {
         Ok(Self { db })
     }
 
+    #[cfg(test)]
+    pub(crate) async fn drop(&self) -> Result<(), Error> {
+        Ok(Migrator::down(&self.db, None).await.location(here!())?)
+    }
+
     pub(crate) async fn find_text(&self, info: &ChapterInfo) -> Result<FindTextResult, Error> {
         let identifier = info.identifier.to_string();
         let time = info.time;
@@ -261,10 +266,7 @@ mod tests {
             panic!("Incorrect database query result");
         }
 
-        let db_path = crate::data_dir_path(app_name)?;
-        assert!(db_path.exists());
-
-        fs::remove_dir_all(db_path).await?;
+        db.drop().await?;
 
         Ok(())
     }
