@@ -1,9 +1,20 @@
 use std::{env, path::PathBuf};
 
-use directories::ProjectDirs;
+use directories::{ProjectDirs, UserDirs};
 use tracing::warn;
 
 use crate::Error;
+
+pub fn home_dir_path() -> Result<PathBuf, Error> {
+    if let Some(user_dirs) = UserDirs::new() {
+        Ok(user_dirs.home_dir().to_path_buf())
+    } else {
+        Err(Error::NovelApi(
+            "No valid home directory path could be retrieved from the operating system."
+                .to_string(),
+        ))
+    }
+}
 
 pub(crate) fn config_dir_path(app_name: &str) -> Result<PathBuf, Error> {
     match ProjectDirs::from("", "", app_name) {
