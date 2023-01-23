@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Captcha</title>
+  </head>
+  <body>
+    <div id="captcha-box"></div>
+    <script src="geetest.js"></script>
+    <script defer>
+      initGeetest(
+        {{
+          gt: "{}",
+          challenge: "{}",
+          offline: !1,
+          new_captcha: {},
+        }},
+        function (captchaObj) {{
+          {{
+            captchaObj.appendTo("#captcha-box");
+            captchaObj.onSuccess(function () {{
+              {{
+                let result = captchaObj.getValidate();
+                window.location.href =
+                  window.location.origin + "/validate/" + result.geetest_validate;
+              }}
+            }});
+          }}
+        }}
+      );
+    </script>
+  </body>
+</html>
