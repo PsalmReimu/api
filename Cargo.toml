@@ -11,6 +11,7 @@ description = "APIs of sfacg and ciweimao"
 readme = "README.md"
 keywords = ["novel", "sfacg", "ciweimao"]
 categories = ["command-line-utilities"]
+build = "build.rs"
 
 [dependencies]
 # https://github.com/dtolnay/thiserror
