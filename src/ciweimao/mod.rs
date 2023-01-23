@@ -992,17 +992,37 @@ impl CiweimaoClient {
 
     // TODO 更美观的页面
     async fn run_server(info: &GeetestInfoResponse) -> Result<String, Error> {
+        // TODO use std::path::MAIN_SEPARATOR_STR
+        // https://doc.rust-lang.org/std/path/constant.MAIN_SEPARATOR_STR.html
+        #[cfg(target_os = "windows")]
+        macro_rules! PATH_SEPARATOR {
+            () => {
+                r"\"
+            };
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        macro_rules! PATH_SEPARATOR {
+            () => {
+                r"/"
+            };
+        }
+
         let js = warp::path("geetest.js").map(|| {
             Response::builder()
                 .status(200)
                 .header("content-type", "text/javascript")
-                .body(include_str!("./assets/geetest.js"))
+                .body(include_str!(concat!(
+                    "assets",
+                    PATH_SEPARATOR!(),
+                    "geetest.js"
+                )))
         });
 
         let info = info.clone();
         let index = warp::path("captcha").map(move || {
             let html = format!(
-                include_str!("./assets/index.html"),
+                include_str!(concat!("assets", PATH_SEPARATOR!(), "index.html")),
                 info.gt,
                 info.challenge,
                 if info.new_captcha { "true" } else { "false" }
