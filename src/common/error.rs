@@ -13,7 +13,7 @@ pub enum Error {
     #[error(transparent)]
     StdSystemTime(#[from] std::time::SystemTimeError),
     #[error(transparent)]
-    StdParseIntError(#[from] std::num::ParseIntError),
+    StdParseInt(#[from] std::num::ParseIntError),
     #[error(transparent)]
     Anyhow(#[from] anyhow::Error),
     #[error(transparent)]
