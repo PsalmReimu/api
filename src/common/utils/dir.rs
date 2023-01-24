@@ -10,8 +10,7 @@ pub fn home_dir_path() -> Result<PathBuf, Error> {
         Ok(user_dirs.home_dir().to_path_buf())
     } else {
         Err(Error::NovelApi(
-            "No valid home directory path could be retrieved from the operating system."
-                .to_string(),
+            "No valid home directory path could be retrieved from the operating system".to_string(),
         ))
     }
 }
