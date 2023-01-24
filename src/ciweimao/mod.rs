@@ -354,7 +354,7 @@ impl Client for CiweimaoClient {
         Ok(Some(user_info))
     }
 
-    async fn novel_info(&self, id: u32) -> Result<NovelInfo, Error> {
+    async fn novel_info(&self, id: u32) -> Result<Option<NovelInfo>, Error> {
         let mut timing = Timing::new();
 
         let response: NovelInfoResponse = self
@@ -370,6 +370,9 @@ impl Client for CiweimaoClient {
             )
             .await
             .location(here!())?;
+        if response.code == CiweimaoClient::NOT_FOUND {
+            return Ok(None);
+        }
 
         check_response(&response.code, &response.tip).location(here!())?;
 
@@ -431,7 +434,7 @@ impl Client for CiweimaoClient {
             timing.elapsed()?
         );
 
-        Ok(novel_info)
+        Ok(Some(novel_info))
     }
 
     async fn volume_infos(&self, id: u32) -> Result<VolumeInfos, Error> {

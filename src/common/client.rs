@@ -153,7 +153,7 @@ pub trait Client {
     async fn user_info(&self) -> Result<Option<UserInfo>, Error>;
 
     /// Get Novel Information
-    async fn novel_info(&self, id: u32) -> Result<NovelInfo, Error>;
+    async fn novel_info(&self, id: u32) -> Result<Option<NovelInfo>, Error>;
 
     /// Get volume Information
     async fn volume_infos(&self, id: u32) -> Result<VolumeInfos, Error>;

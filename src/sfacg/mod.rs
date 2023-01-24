@@ -48,6 +48,10 @@ impl Status {
         self.http_code == StatusCode::OK && self.error_code == 200
     }
 
+    fn not_found(&self) -> bool {
+        self.http_code == StatusCode::NOT_FOUND && self.error_code == 404
+    }
+
     fn unauthorized(&self) -> bool {
         self.http_code == StatusCode::UNAUTHORIZED && self.error_code == 502
     }
@@ -367,7 +371,7 @@ impl Client for SfacgClient {
         Ok(Some(info))
     }
 
-    async fn novel_info(&self, id: u32) -> Result<NovelInfo, Error> {
+    async fn novel_info(&self, id: u32) -> Result<Option<NovelInfo>, Error> {
         let mut timing = Timing::new();
 
         let response = self
@@ -382,6 +386,9 @@ impl Client for SfacgClient {
             .json::<NovelsResponse>()
             .await
             .location(here!())?;
+        if response.status.not_found() {
+            return Ok(None);
+        }
         response.status.check().location(here!())?;
 
         let novel_data = response.data.expect("Api error, no `data` field");
@@ -436,7 +443,7 @@ impl Client for SfacgClient {
             timing.elapsed()?
         );
 
-        Ok(novel_info)
+        Ok(Some(novel_info))
     }
 
     async fn volume_infos(&self, id: u32) -> Result<VolumeInfos, Error> {

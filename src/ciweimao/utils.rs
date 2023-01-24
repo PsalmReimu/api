@@ -22,6 +22,7 @@ struct Config {
 
 impl CiweimaoClient {
     pub(crate) const LOGIN_EXPIRED: &str = "200100";
+    pub(crate) const NOT_FOUND: &str = "320001";
 
     const APP_NAME: &str = "ciweimao";
     const CONFIG_FILE_NAME: &str = "config.toml";

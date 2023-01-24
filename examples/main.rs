@@ -21,7 +21,9 @@ async fn main() -> Result<()> {
     println!("{:#?}", content_infos);
 
     let image_file_name = "sfacg-test.webp";
-    let image_info = client.image_info(&novel_info.cover_url.unwrap()).await?;
+    let image_info = client
+        .image_info(&novel_info.unwrap().cover_url.unwrap())
+        .await?;
     image_info.save(image_file_name)?;
     fs::remove_file(image_file_name).await?;
 

@@ -9,6 +9,12 @@ async fn sfacg() -> Result<()> {
 
     let client = SfacgClient::new().await?;
 
+    let user_info = client.user_info().await?;
+    assert!(user_info.is_none());
+
+    let novel_info = client.novel_info(42949667).await?;
+    assert!(novel_info.is_none());
+
     let novel_info = client.novel_info(novel_id).await?;
     println!("{:#?}", novel_info);
 
@@ -21,7 +27,9 @@ async fn sfacg() -> Result<()> {
     println!("{:#?}", content_infos);
 
     let image_file_name = "sfacg-test.webp";
-    let image_info = client.image_info(&novel_info.cover_url.unwrap()).await?;
+    let image_info = client
+        .image_info(&novel_info.unwrap().cover_url.unwrap())
+        .await?;
     image_info.save(image_file_name)?;
     fs::remove_file(image_file_name).await?;
 
