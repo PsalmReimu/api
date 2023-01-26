@@ -1081,7 +1081,7 @@ impl CiweimaoClient {
 
         let md5 = hash::hash(
             MessageDigest::md5(),
-            format!("{}{}", account, timestamp).as_bytes(),
+            format!("{account}{timestamp}").as_bytes(),
         )
         .location(here!())?;
 

@@ -47,7 +47,7 @@ impl Timing {
             unit = "ns";
         }
 
-        Ok(format!("{}{}", elapsed, unit))
+        Ok(format!("{elapsed}{unit}"))
     }
 }
 

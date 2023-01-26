@@ -376,7 +376,7 @@ impl Client for SfacgClient {
 
         let response = self
             .get_query(
-                format!("/novels/{}", id),
+                format!("/novels/{id}"),
                 &NovelsRequest {
                     expand: Some("intro,typeName,sysTags"),
                 },
@@ -439,7 +439,7 @@ impl Client for SfacgClient {
 
         info!(
             "Time spent on `{}`: {}",
-            format!("/novels/{}", id),
+            format!("/novels/{id}"),
             timing.elapsed()?
         );
 
@@ -450,7 +450,7 @@ impl Client for SfacgClient {
         let mut timing = Timing::new();
 
         let response = self
-            .get(format!("/novels/{}/dirs", id))
+            .get(format!("/novels/{id}/dirs"))
             .await
             .location(here!())?
             .json::<NovelsDirsResponse>()
@@ -496,7 +496,7 @@ impl Client for SfacgClient {
 
         info!(
             "Time spent on `{}`: {}",
-            format!("/novels/{}/dirs", id),
+            format!("/novels/{id}/dirs"),
             timing.elapsed()?
         );
 
@@ -717,14 +717,12 @@ impl SfacgClient {
 
         let begin = begin
             .ok_or(Error::NovelApi(format!(
-                "Image insertion format is incorrect: {}",
-                line
+                "Image insertion format is incorrect: {line}"
             )))
             .location(here!())?;
         let end = end
             .ok_or(Error::NovelApi(format!(
-                "Image insertion format is incorrect: {}",
-                line
+                "Image insertion format is incorrect: {line}"
             )))
             .location(here!())?;
 
