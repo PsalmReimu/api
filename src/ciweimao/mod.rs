@@ -1102,7 +1102,7 @@ impl CiweimaoClient {
             .location(here!())?;
         check_response(&response.code, &response.tip).location(here!())?;
 
-        print!("请输入短信验证码：");
+        print!("Please enter SMS verification code: ");
         io::stdout().flush().location(here!())?;
 
         let mut ver_code = String::new();
