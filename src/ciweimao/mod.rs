@@ -322,6 +322,10 @@ impl Client for CiweimaoClient {
     async fn user_info(&self) -> Result<Option<UserInfo>, Error> {
         let mut timing = Timing::new();
 
+        if self.account().is_empty() || self.login_token().is_empty() {
+            return Ok(None);
+        }
+
         let response: UserInfoResponse = self
             .post(
                 "/reader/get_my_info",
