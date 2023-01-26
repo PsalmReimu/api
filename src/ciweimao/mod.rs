@@ -19,7 +19,7 @@ use http::StatusCode;
 use image::{io::Reader, DynamicImage};
 use once_cell::sync::Lazy;
 use parking_lot::RwLock;
-use roxmltree::Document;
+use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc, oneshot, OnceCell};
 use tracing::{info, warn};
@@ -579,7 +579,10 @@ impl Client for CiweimaoClient {
             if line.starts_with("<img") {
                 match CiweimaoClient::parser_image_url(line) {
                     Ok(url) => content_infos.push(ContentInfo::Image(url)),
-                    Err(error) => warn!("{}", error),
+                    Err(error) => warn!(
+                        "An error occurred while parsing the image URL: {}, error: {}",
+                        line, error
+                    ),
                 }
             } else {
                 content_infos.push(ContentInfo::Text(line.to_string()));
@@ -1145,21 +1148,16 @@ impl CiweimaoClient {
     }
 
     fn parser_image_url(line: &str) -> Result<Url, Error> {
-        let doc = Document::parse(line).location(here!())?;
-        let url = doc
-            .descendants()
-            .find(|n| n.has_tag_name("img"))
-            .ok_or(Error::NovelApi(format!(
-                "Image insertion format is incorrect: {}",
-                line
-            )))
-            .location(here!())?
-            .attribute("src")
-            .ok_or(Error::NovelApi(format!(
-                "Image insertion format is incorrect: {}",
-                line
-            )))
-            .location(here!())?;
+        let fragment = Html::parse_fragment(line);
+        let selector = Selector::parse("img").unwrap();
+        let element = fragment
+            .select(&selector)
+            .next()
+            .ok_or(Error::NovelApi(String::from("No `img` element exists")))?;
+        let url = element
+            .value()
+            .attr("src")
+            .ok_or(Error::NovelApi(String::from("No `src` attribute exists")))?;
 
         Ok(Url::parse(url)?)
     }

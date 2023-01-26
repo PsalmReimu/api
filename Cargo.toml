@@ -32,7 +32,7 @@ tokio = { version = "1.24.2", features = [
   "parking_lot",
 ] }
 # https://github.com/tkaitchuck/ahash
-ahash = "0.8.2"
+ahash = "0.8.3"
 # https://github.com/Amanieu/parking_lot
 parking_lot = { version = "0.12.1", features = ["hardware-lock-elision"] }
 # https://github.com/matklad/once_cell
@@ -41,8 +41,8 @@ once_cell = { version = "1.17.0", features = ["parking_lot"] }
 simdutf8 = { version = "0.1.4", features = ["aarch64_neon"] }
 # https://github.com/serde-rs/json
 serde_json = "1.0.91"
-# https://github.com/RazrFalcon/roxmltree
-roxmltree = { version = "0.17.0", default-features = false, features = ["std"] }
+# https://github.com/causal-agent/scraper
+scraper = { version = "0.14.0", default-features = false }
 # https://github.com/uuid-rs/uuid
 uuid = { version = "1.2.2", features = ["v4", "fast-rng"] }
 # https://github.com/chronotope/chrono

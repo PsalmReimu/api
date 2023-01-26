@@ -33,8 +33,6 @@ pub enum Error {
     #[error(transparent)]
     Simdutf8(#[from] simdutf8::basic::Utf8Error),
     #[error(transparent)]
-    Roxmltree(#[from] roxmltree::Error),
-    #[error(transparent)]
     SeaOrm(#[from] sea_orm::DbErr),
     #[error(transparent)]
     Chrono(#[from] chrono::ParseError),
@@ -76,10 +74,15 @@ where
     Result<T, E>: Context<T, E>,
 {
     fn location(self, loc: Location) -> Result<T> {
+        let msg = self.as_ref().err().map(ToString::to_string);
         self.with_context(|| {
             format!(
-                "In function `{}`, at `{}:{}:{}`",
-                loc.function_name, loc.file, loc.line, loc.column,
+                "{}, in function `{}`, at `{}:{}:{}`",
+                msg.unwrap(),
+                loc.function_name,
+                loc.file,
+                loc.line,
+                loc.column,
             )
         })
     }
