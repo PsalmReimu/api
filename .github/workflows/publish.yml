@@ -1,9 +1,9 @@
 name: Publish
 
 on:
-  release:
-    # # https://stackoverflow.com/questions/59319281/github-action-different-between-release-created-and-published
-    types: [published]
+  push:
+    tags:
+      - "*"
 
 permissions:
   contents: read

@@ -44,14 +44,17 @@ struct Status {
 }
 
 impl Status {
+    #[must_use]
     fn ok(&self) -> bool {
         self.http_code == StatusCode::OK && self.error_code == 200
     }
 
+    #[must_use]
     fn not_found(&self) -> bool {
         self.http_code == StatusCode::NOT_FOUND && self.error_code == 404
     }
 
+    #[must_use]
     fn unauthorized(&self) -> bool {
         self.http_code == StatusCode::UNAUTHORIZED && self.error_code == 502
     }

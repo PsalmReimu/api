@@ -33,6 +33,7 @@ use crate::{
 };
 
 /// Ciweimao client, use it to access Apis
+#[must_use]
 pub struct CiweimaoClient {
     proxy: Option<Url>,
     no_proxy: bool,
@@ -59,6 +60,7 @@ fn check_response(code: &str, tip: &Option<String>) -> Result<(), Error> {
     }
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct UserInfoRequest {
     app_version: String,
@@ -67,6 +69,7 @@ struct UserInfoRequest {
     login_token: String,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct UserInfoResponse {
     code: String,
@@ -74,16 +77,19 @@ struct UserInfoResponse {
     data: Option<UserInfoData>,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct UserInfoData {
     reader_info: UserInfoReaderInfo,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct UserInfoReaderInfo {
     reader_name: String,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct NovelInfoRequest {
     app_version: String,
@@ -93,6 +99,7 @@ struct NovelInfoRequest {
     book_id: u32,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct NovelInfoResponse {
     code: String,
@@ -100,11 +107,13 @@ struct NovelInfoResponse {
     data: Option<NovelInfoData>,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct NovelInfoData {
     book_info: NovelInfoBookInfo,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct NovelInfoBookInfo {
     book_id: String,
@@ -120,6 +129,7 @@ struct NovelInfoBookInfo {
     tag: String,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct VolumesRequest {
     app_version: String,
@@ -129,6 +139,7 @@ struct VolumesRequest {
     book_id: u32,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct VolumesResponse {
     code: String,
@@ -136,11 +147,13 @@ struct VolumesResponse {
     data: Option<VolumesData>,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct VolumesData {
     chapter_list: Vec<VolumesVolumeInfo>,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct VolumesVolumeInfo {
     division_id: String,
@@ -148,6 +161,7 @@ struct VolumesVolumeInfo {
     chapter_list: Vec<VolumesChapterInfo>,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct VolumesChapterInfo {
     chapter_id: String,
@@ -158,6 +172,7 @@ struct VolumesChapterInfo {
     auth_access: String,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct ChapsRequest {
     app_version: String,
@@ -168,6 +183,7 @@ struct ChapsRequest {
     chapter_command: String,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct ChapsResponse {
     code: String,
@@ -175,16 +191,19 @@ struct ChapsResponse {
     data: Option<ChapsData>,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct ChapsData {
     chapter_info: ChapsInfo,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct ChapsInfo {
     txt_content: String,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct SearchRequest {
     app_version: String,
@@ -196,6 +215,7 @@ struct SearchRequest {
     page: u16,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct SearchResponse {
     code: String,
@@ -203,16 +223,19 @@ struct SearchResponse {
     data: Option<SearchData>,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct SearchData {
     book_list: Vec<SearchNovelInfo>,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct SearchNovelInfo {
     book_id: String,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct FavoritesRequest {
     app_version: String,
@@ -222,6 +245,7 @@ struct FavoritesRequest {
     shelf_id: u32,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct FavoritesResponse {
     code: String,
@@ -229,16 +253,19 @@ struct FavoritesResponse {
     data: Option<FavoritesData>,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct FavoritesData {
     book_list: Vec<FavoritesInfo>,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct FavoritesInfo {
     book_info: FavoritesNovelInfo,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct FavoritesNovelInfo {
     book_id: String,
@@ -403,7 +430,7 @@ impl Client for CiweimaoClient {
             Some(introduction)
         };
 
-        let type_name = CATEGORIES
+        let genre = CATEGORIES
             .get(&data.category_index.parse::<u8>().location(here!())?)
             .expect("The category index does not exist")
             .to_string();
@@ -429,7 +456,7 @@ impl Client for CiweimaoClient {
             finished: Some(finished),
             create_time,
             update_time: Some(update_time),
-            genre: Some(type_name),
+            genre: Some(genre),
             tags,
         };
 
@@ -730,6 +757,7 @@ impl Client for CiweimaoClient {
     }
 }
 
+#[must_use]
 #[derive(Debug)]
 enum VerifyType {
     None,
@@ -737,6 +765,7 @@ enum VerifyType {
     VerifyCode,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct UseGeetestRequest {
     app_version: String,
@@ -744,6 +773,7 @@ struct UseGeetestRequest {
     login_name: String,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct UseGeetestResponse {
     code: String,
@@ -751,17 +781,20 @@ struct UseGeetestResponse {
     data: Option<UseGeetestData>,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct UseGeetestData {
     need_use_geetest: String,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct GeetestInfoRequest {
     t: u64,
     user_id: String,
 }
 
+#[must_use]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct GeetestInfoResponse {
     success: u8,
@@ -770,6 +803,7 @@ struct GeetestInfoResponse {
     new_captcha: bool,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct SendVerifyCodeRequest {
     account: String,
@@ -781,6 +815,7 @@ struct SendVerifyCodeRequest {
     verify_type: String,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct SendVerifyCodeResponse {
     code: String,
@@ -788,11 +823,13 @@ struct SendVerifyCodeResponse {
     data: Option<SendVerifyCodeData>,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct SendVerifyCodeData {
     to_code: String,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct LoginRequest {
     app_version: String,
@@ -801,6 +838,7 @@ struct LoginRequest {
     passwd: String,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct LoginCaptchaRequest {
     app_version: String,
@@ -812,6 +850,7 @@ struct LoginCaptchaRequest {
     geetest_challenge: String,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct LoginSMSRequest {
     app_version: String,
@@ -822,6 +861,7 @@ struct LoginSMSRequest {
     ver_code: String,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct LoginResponse {
     code: String,
@@ -829,17 +869,20 @@ struct LoginResponse {
     data: Option<LoginData>,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct LoginData {
     login_token: String,
     reader_info: LoginReaderInfo,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct LoginReaderInfo {
     account: String,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct ChapterCmdRequest {
     app_version: String,
@@ -849,6 +892,7 @@ struct ChapterCmdRequest {
     chapter_id: String,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct ChapterCmdResponse {
     code: String,
@@ -856,11 +900,13 @@ struct ChapterCmdResponse {
     data: Option<ChapterCmdData>,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct ChapterCmdData {
     command: String,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct ShelfListRequest {
     app_version: String,
@@ -869,6 +915,7 @@ struct ShelfListRequest {
     login_token: String,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct ShelfListResponse {
     code: String,
@@ -876,11 +923,13 @@ struct ShelfListResponse {
     data: Option<ShelfListData>,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct ShelfListData {
     shelf_list: Vec<ShelfList>,
 }
 
+#[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct ShelfList {
     shelf_id: String,
@@ -1050,6 +1099,7 @@ impl CiweimaoClient {
 
         let (stop_tx, stop_rx) = oneshot::channel();
         let (addr, server) = warp::serve(index.or(js).or(validate)).bind_with_graceful_shutdown(
+            // TODO 处理端口被占用的情况
             ([127, 0, 0, 1], 3030),
             async {
                 stop_rx.await.ok();

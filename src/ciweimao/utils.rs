@@ -13,6 +13,7 @@ use url::Url;
 
 use crate::{here, CiweimaoClient, Error, ErrorLocation, HTTPClient, Location, NovelDB};
 
+#[must_use]
 #[derive(Default, Debug, Serialize, Deserialize)]
 struct Config {
     version: String,
@@ -209,6 +210,7 @@ impl CiweimaoClient {
         )?)
     }
 
+    #[must_use]
     fn get_default_key() -> &'static [u8; 32] {
         static AES_KEY: SyncOnceCell<[u8; 32]> = SyncOnceCell::new();
         AES_KEY.get_or_init(|| sha::sha256(CiweimaoClient::AES_KEY.as_bytes()))

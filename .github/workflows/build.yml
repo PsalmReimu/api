@@ -22,13 +22,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform:
+        include:
           - os: ubuntu-latest
           - os: macos-latest
           - os: windows-latest
 
     name: Build
-    runs-on: ${{ matrix.platform.os }}
+    runs-on: ${{ matrix.os }}
 
     steps:
       # https://github.com/actions/checkout
@@ -47,7 +47,7 @@ jobs:
 
       # https://github.com/ilammy/setup-nasm
       - name: Install NASM
-        if: ${{ matrix.platform.os == 'windows-latest' }}
+        if: ${{ matrix.os == 'windows-latest' }}
         uses: ilammy/setup-nasm@v1
 
       - name: Run cargo test
