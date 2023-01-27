@@ -116,10 +116,9 @@ struct NovelInfoData {
 #[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct NovelInfoBookInfo {
-    book_id: String,
     book_name: String,
     author_name: String,
-    cover: Url,
+    cover: String,
     description: String,
     total_word_count: String,
     up_status: String,
@@ -156,7 +155,6 @@ struct VolumesData {
 #[must_use]
 #[derive(Debug, Serialize, Deserialize)]
 struct VolumesVolumeInfo {
-    division_id: String,
     division_name: String,
     chapter_list: Vec<VolumesChapterInfo>,
 }
@@ -368,14 +366,9 @@ impl Client for CiweimaoClient {
         if response.code == CiweimaoClient::LOGIN_EXPIRED {
             return Ok(None);
         }
-
         check_response(&response.code, &response.tip).location(here!())?;
 
-        let data = response
-            .data
-            .expect("Api error, no `data` field")
-            .reader_info;
-
+        let data = response.data.unwrap().reader_info;
         let user_info = UserInfo {
             nickname: data.reader_name,
         };
@@ -404,60 +397,21 @@ impl Client for CiweimaoClient {
         if response.code == CiweimaoClient::NOT_FOUND {
             return Ok(None);
         }
-
         check_response(&response.code, &response.tip).location(here!())?;
 
-        let data = response.data.expect("Api error, no `data` field").book_info;
-
-        let mut tags: Vec<Tag> = vec![];
-        for tag in data.tag.split(',') {
-            tags.push(Tag {
-                id: None,
-                name: tag.trim().to_string(),
-            });
-        }
-        let tags = if tags.is_empty() { None } else { Some(tags) };
-
-        let introduction = data
-            .description
-            .lines()
-            .map(|line| line.trim().to_string())
-            .filter(|line| !line.is_empty())
-            .collect::<Vec<String>>();
-        let introduction = if introduction.is_empty() {
-            None
-        } else {
-            Some(introduction)
-        };
-
-        let genre = CATEGORIES
-            .get(&data.category_index.parse::<u8>().location(here!())?)
-            .expect("The category index does not exist")
-            .to_string();
-
-        let create_time = if !data.newtime.is_empty() {
-            Some(NaiveDateTime::from_str(&data.newtime.replace(' ', "T"))?)
-        } else {
-            None
-        };
-
-        let update_time =
-            NaiveDateTime::from_str(&data.uptime.replace(' ', "T")).location(here!())?;
-
-        let finished = data.up_status == "1";
-
+        let data = response.data.unwrap().book_info;
         let novel_info = NovelInfo {
-            id: data.book_id.parse::<u32>().location(here!())?,
+            id,
             name: data.book_name,
             author_name: data.author_name,
-            cover_url: Some(data.cover),
-            introduction,
-            word_count: Some(data.total_word_count.parse::<u32>().location(here!())?),
-            finished: Some(finished),
-            create_time,
-            update_time: Some(update_time),
-            genre: Some(genre),
-            tags,
+            cover_url: CiweimaoClient::parse_url(&data.cover),
+            introduction: CiweimaoClient::parse_introduction(&data.description),
+            word_count: CiweimaoClient::parse_number(&data.total_word_count),
+            finished: CiweimaoClient::parse_bool(&data.up_status),
+            create_time: CiweimaoClient::parse_data_time(&data.newtime),
+            update_time: CiweimaoClient::parse_data_time(&data.uptime),
+            genre: CiweimaoClient::parse_genre(&data.category_index),
+            tags: CiweimaoClient::parse_tags(&data.tag),
         };
 
         info!(
@@ -484,36 +438,26 @@ impl Client for CiweimaoClient {
             )
             .await
             .location(here!())?;
-
         check_response(&response.code, &response.tip).location(here!())?;
 
         let mut volume_infos = VolumeInfos::new();
-
-        for item in response
-            .data
-            .expect("Api error, no `data` field")
-            .chapter_list
-        {
+        for item in response.data.unwrap().chapter_list {
             let mut volume_info = VolumeInfo {
-                id: Some(item.division_id.parse::<u32>().location(here!())?),
                 title: item.division_name,
                 chapter_infos: Vec::new(),
             };
 
             for chapter in item.chapter_list {
-                let time =
-                    NaiveDateTime::from_str(&chapter.mtime.replace(' ', "T")).location(here!())?;
-
                 let chapter_info = ChapterInfo {
                     identifier: Identifier::Id(
                         chapter.chapter_id.parse::<u32>().location(here!())?,
                     ),
                     title: chapter.chapter_title,
-                    word_count: Some(chapter.word_count.parse::<u16>().location(here!())?),
-                    update_time: Some(time),
+                    word_count: CiweimaoClient::parse_number(&chapter.word_count),
+                    update_time: CiweimaoClient::parse_data_time(&chapter.mtime),
                     is_vip: None,
-                    accessible: Some(chapter.auth_access == "1"),
-                    is_valid: Some(chapter.is_valid == "1"),
+                    accessible: CiweimaoClient::parse_bool(&chapter.auth_access),
+                    is_valid: CiweimaoClient::parse_bool(&chapter.is_valid),
                 };
 
                 volume_info.chapter_infos.push(chapter_info);
@@ -571,11 +515,7 @@ impl Client for CiweimaoClient {
 
                 let conetent = CiweimaoClient::aes_256_cbc_base64_decrypt(
                     aes_key,
-                    response
-                        .data
-                        .expect("Api error, no `data` field")
-                        .chapter_info
-                        .txt_content,
+                    response.data.unwrap().chapter_info.txt_content,
                 )
                 .location(here!())?;
                 content = simdutf8::basic::from_utf8(&conetent)?.to_string();
@@ -608,12 +548,8 @@ impl Client for CiweimaoClient {
             .filter(|line| !line.is_empty())
         {
             if line.starts_with("<img") {
-                match CiweimaoClient::parser_image_url(line) {
-                    Ok(url) => content_infos.push(ContentInfo::Image(url)),
-                    Err(error) => warn!(
-                        "An error occurred while parsing the image URL: {}, error: {}",
-                        line, error
-                    ),
+                if let Some(url) = CiweimaoClient::parse_image_url(line) {
+                    content_infos.push(ContentInfo::Image(url));
                 }
             } else {
                 content_infos.push(ContentInfo::Text(line.to_string()));
@@ -736,7 +672,7 @@ impl Client for CiweimaoClient {
         check_response(&response.code, &response.tip).location(here!())?;
 
         let mut result = Vec::new();
-        let data = response.data.expect("Api error, no `data` field").book_list;
+        let data = response.data.unwrap().book_list;
 
         for novel_info in data {
             result.push(
@@ -953,7 +889,7 @@ impl CiweimaoClient {
             .location(here!())?;
         check_response(&response.code, &response.tip).location(here!())?;
 
-        let data = response.data.expect("Api error, no `data` field");
+        let data = response.data.unwrap();
         if data.need_use_geetest == "0" {
             Ok(VerifyType::None)
         } else if data.need_use_geetest == "1" {
@@ -988,7 +924,7 @@ impl CiweimaoClient {
             .location(here!())?;
         check_response(&response.code, &response.tip).location(here!())?;
 
-        let data = response.data.expect("Api error, no `data` field");
+        let data = response.data.unwrap();
         Ok((data.reader_info.account, data.login_token))
     }
 
@@ -1017,7 +953,7 @@ impl CiweimaoClient {
             .location(here!())?;
         check_response(&response.code, &response.tip).location(here!())?;
 
-        let data = response.data.expect("Api error, no `data` field");
+        let data = response.data.unwrap();
         Ok((data.reader_info.account, data.login_token))
     }
 
@@ -1166,7 +1102,7 @@ impl CiweimaoClient {
                     device_token: CiweimaoClient::DEVICE_TOKEN.to_string(),
                     login_name: username.as_ref().to_string(),
                     passwd: password.as_ref().to_string(),
-                    to_code: response.data.expect("Api error, no `data` field").to_code,
+                    to_code: response.data.unwrap().to_code,
                     ver_code: ver_code.trim().to_string(),
                 },
             )
@@ -1174,7 +1110,7 @@ impl CiweimaoClient {
             .location(here!())?;
         check_response(&response.code, &response.tip).location(here!())?;
 
-        let data = response.data.expect("Api error, no `data` field");
+        let data = response.data.unwrap();
         Ok((data.reader_info.account, data.login_token))
     }
 
@@ -1198,22 +1134,178 @@ impl CiweimaoClient {
             .location(here!())?;
         check_response(&response.code, &response.tip).location(here!())?;
 
-        Ok(response.data.expect("Api error, no `data` field").command)
+        Ok(response.data.unwrap().command)
     }
 
-    fn parser_image_url(line: &str) -> Result<Url, Error> {
-        let fragment = Html::parse_fragment(line);
-        let selector = Selector::parse("img").unwrap();
-        let element = fragment
-            .select(&selector)
-            .next()
-            .ok_or(Error::NovelApi(String::from("No `img` element exists")))?;
-        let url = element
-            .value()
-            .attr("src")
-            .ok_or(Error::NovelApi(String::from("No `src` attribute exists")))?;
+    fn parse_data_time<T>(str: T) -> Option<NaiveDateTime>
+    where
+        T: AsRef<str>,
+    {
+        let str = str.as_ref();
+        if str.is_empty() {
+            return None;
+        }
 
-        Ok(Url::parse(url)?)
+        match NaiveDateTime::from_str(&str.replace(' ', "T")) {
+            Ok(data_time) => Some(data_time),
+            Err(error) => {
+                warn!("data_time parse failed: {error}, content: {str}");
+
+                None
+            }
+        }
+    }
+
+    fn parse_number<T, E>(str: T) -> Option<E>
+    where
+        T: AsRef<str>,
+        E: FromStr,
+    {
+        let str = str.as_ref();
+        if str.is_empty() {
+            return None;
+        }
+
+        match str.parse::<E>() {
+            Ok(word_count) => Some(word_count),
+            Err(_) => {
+                warn!("number parse failed: conetent: {str}");
+                None
+            }
+        }
+    }
+
+    fn parse_bool<T>(str: T) -> Option<bool>
+    where
+        T: AsRef<str>,
+    {
+        let str = str.as_ref();
+        if str.is_empty() {
+            return None;
+        }
+
+        if str == "1" {
+            Some(true)
+        } else {
+            Some(false)
+        }
+    }
+
+    fn parse_url<T>(str: T) -> Option<Url>
+    where
+        T: AsRef<str>,
+    {
+        let str = str.as_ref();
+        if str.is_empty() {
+            return None;
+        }
+
+        match Url::parse(str) {
+            Ok(url) => Some(url),
+            Err(error) => {
+                warn!("Url parse failed: {error}: {str}");
+                None
+            }
+        }
+    }
+
+    fn parse_tags<T>(str: T) -> Option<Vec<Tag>>
+    where
+        T: AsRef<str>,
+    {
+        let str = str.as_ref();
+        if str.is_empty() {
+            return None;
+        }
+
+        let mut tags: Vec<Tag> = vec![];
+        for tag in str.split(',') {
+            tags.push(Tag {
+                id: None,
+                name: tag.trim().to_string(),
+            });
+        }
+
+        if tags.is_empty() {
+            None
+        } else {
+            Some(tags)
+        }
+    }
+
+    fn parse_genre<T>(str: T) -> Option<String>
+    where
+        T: AsRef<str>,
+    {
+        let str = str.as_ref();
+        if str.is_empty() {
+            return None;
+        }
+
+        match str.parse::<u8>() {
+            Ok(index) => match CATEGORIES.get(&index) {
+                Some(str) => Some(str.to_string()),
+                None => {
+                    warn!("The category index does not exist: {str}");
+                    None
+                }
+            },
+            Err(error) => {
+                warn!("`category_index` parse failed: {error}");
+                None
+            }
+        }
+    }
+
+    fn parse_introduction<T>(str: T) -> Option<Vec<String>>
+    where
+        T: AsRef<str>,
+    {
+        let str = str.as_ref();
+        if str.is_empty() {
+            return None;
+        }
+
+        let introduction = str
+            .lines()
+            .map(|line| line.trim().to_string())
+            .filter(|line| !line.is_empty())
+            .collect::<Vec<String>>();
+
+        if introduction.is_empty() {
+            None
+        } else {
+            Some(introduction)
+        }
+    }
+
+    fn parse_image_url<T>(str: T) -> Option<Url>
+    where
+        T: AsRef<str>,
+    {
+        let str = str.as_ref();
+        if str.is_empty() {
+            return None;
+        }
+
+        let fragment = Html::parse_fragment(str);
+        let selector = Selector::parse("img").unwrap();
+
+        let element = fragment.select(&selector).next();
+        if element.is_none() {
+            warn!("No `img` element exists: {str}");
+            return None;
+        }
+        let element = element.unwrap();
+
+        let url = element.value().attr("src");
+        if url.is_none() {
+            warn!("No `src` element exists: {str}");
+            return None;
+        }
+        let url = url.unwrap();
+
+        CiweimaoClient::parse_url(url)
     }
 
     async fn shelf_list(&self) -> Result<u32, Error> {
@@ -1231,10 +1323,7 @@ impl CiweimaoClient {
             .location(here!())?;
         check_response(&response.code, &response.tip).location(here!())?;
 
-        Ok(response
-            .data
-            .expect("Api error, no `data` field")
-            .shelf_list[0]
+        Ok(response.data.unwrap().shelf_list[0]
             .shelf_id
             .parse::<u32>()
             .location(here!())?)

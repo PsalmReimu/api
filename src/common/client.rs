@@ -66,8 +66,6 @@ pub type VolumeInfos = Vec<VolumeInfo>;
 #[must_use]
 #[derive(Debug)]
 pub struct VolumeInfo {
-    /// Volume id
-    pub id: Option<u32>,
     /// Volume title
     pub title: String,
     /// Chapter information

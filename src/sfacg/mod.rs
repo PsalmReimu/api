@@ -361,12 +361,7 @@ impl Client for SfacgClient {
         response.status.check().location(here!())?;
 
         let info = UserInfo {
-            nickname: response
-                .data
-                .expect("Api error, no `data` field")
-                .nick_name
-                .trim()
-                .to_string(),
+            nickname: response.data.unwrap().nick_name.trim().to_string(),
         };
 
         info!("Time spent on `/user`: {}", timing.elapsed()?);
@@ -394,7 +389,7 @@ impl Client for SfacgClient {
         }
         response.status.check().location(here!())?;
 
-        let novel_data = response.data.expect("Api error, no `data` field");
+        let novel_data = response.data.unwrap();
 
         let mut tags = vec![];
         for tag in novel_data.expand.sys_tags {
@@ -463,13 +458,8 @@ impl Client for SfacgClient {
 
         let mut volumes = VolumeInfos::new();
 
-        for volume in response
-            .data
-            .expect("Api error, no `data` field")
-            .volume_list
-        {
+        for volume in response.data.unwrap().volume_list {
             let mut volume_info = VolumeInfo {
-                id: Some(volume.volume_id),
                 title: volume.title.trim().to_string(),
                 chapter_infos: vec![],
             };
@@ -537,11 +527,7 @@ impl Client for SfacgClient {
                     .location(here!())?;
                 response.status.check().location(here!())?;
 
-                content = response
-                    .data
-                    .expect("Api error, no `data` field")
-                    .expand
-                    .content;
+                content = response.data.unwrap().expand.content;
 
                 match other {
                     FindTextResult::None => self
