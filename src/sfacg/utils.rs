@@ -8,14 +8,14 @@ use tokio::sync::OnceCell;
 use url::Url;
 use uuid::Uuid;
 
-use crate::{here, Error, ErrorLocation, HTTPClient, Location, NovelDB, SfacgClient};
+use crate::{Error, HTTPClient, NovelDB, SfacgClient};
 
 impl SfacgClient {
     const APP_NAME: &str = "sfacg";
 
     const HOST: &str = "https://api.sfacg.com";
-    const USER_AGENT_PREFIX: &str = "boluobao/4.9.38(iOS;16.2)/appStore/";
-    const USER_AGENT_RSS: &str = "SFReader/4.9.38 (iPhone; iOS 16.2; Scale/3.00)";
+    const USER_AGENT_PREFIX: &str = "boluobao/4.9.38(iOS;16.3)/appStore/";
+    const USER_AGENT_RSS: &str = "SFReader/4.9.38 (iPhone; iOS 16.3; Scale/3.00)";
 
     const USERNAME: &str = "apiuser";
     const PASSWORD: &str = "3s#1-yt6e*Acv@qer";
@@ -82,14 +82,12 @@ impl SfacgClient {
     {
         let response = self
             .client()
-            .await
-            .location(here!())?
+            .await?
             .get(SfacgClient::HOST.to_string() + url.as_ref())
             .basic_auth(SfacgClient::USERNAME, Some(SfacgClient::PASSWORD))
-            .header("sfsecurity", self.sf_security().location(here!())?)
+            .header("sfsecurity", self.sf_security()?)
             .send()
-            .await
-            .location(here!())?;
+            .await?;
 
         Ok(response)
     }
@@ -101,28 +99,19 @@ impl SfacgClient {
     {
         let response = self
             .client()
-            .await
-            .location(here!())?
+            .await?
             .get(SfacgClient::HOST.to_string() + url.as_ref())
             .query(query)
             .basic_auth(SfacgClient::USERNAME, Some(SfacgClient::PASSWORD))
-            .header("sfsecurity", self.sf_security().location(here!())?)
+            .header("sfsecurity", self.sf_security()?)
             .send()
-            .await
-            .location(here!())?;
+            .await?;
 
         Ok(response)
     }
 
     pub(crate) async fn get_rss(&self, url: &Url) -> Result<Response, Error> {
-        let response = self
-            .client_rss()
-            .await
-            .location(here!())?
-            .get(url.clone())
-            .send()
-            .await
-            .location(here!())?;
+        let response = self.client_rss().await?.get(url.clone()).send().await?;
 
         Ok(response)
     }
@@ -134,35 +123,27 @@ impl SfacgClient {
     {
         let response = self
             .client()
-            .await
-            .location(here!())?
+            .await?
             .post(SfacgClient::HOST.to_string() + url.as_ref())
             .basic_auth(SfacgClient::USERNAME, Some(SfacgClient::PASSWORD))
-            .header("sfsecurity", self.sf_security().location(here!())?)
+            .header("sfsecurity", self.sf_security()?)
             .json(json)
             .send()
-            .await
-            .location(here!())?;
+            .await?;
 
         Ok(response)
     }
 
     fn sf_security(&self) -> Result<String, Error> {
         let uuid = Uuid::new_v4();
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .location(here!())?
-            .as_secs();
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
         let device_token = crate::uid();
 
-        let data = format!("{}{}{}{}", uuid, timestamp, device_token, SfacgClient::SALT);
-        let md5 = hash::hash(MessageDigest::md5(), data.as_bytes()).location(here!())?;
+        let data = format!("{uuid}{timestamp}{device_token}{}", SfacgClient::SALT);
+        let md5 = hash::hash(MessageDigest::md5(), data.as_bytes())?;
 
         Ok(format!(
-            "nonce={}&timestamp={}&devicetoken={}&sign={}",
-            uuid,
-            timestamp,
-            device_token,
+            "nonce={uuid}&timestamp={timestamp}&devicetoken={device_token}&sign={}",
             hex_simd::encode_to_string(md5, AsciiCase::Upper)
         ))
     }

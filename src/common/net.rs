@@ -15,7 +15,7 @@ use tokio::fs;
 use tracing::info;
 use url::Url;
 
-use crate::{config_dir_path, here, Error, ErrorLocation, Location};
+use crate::{config_dir_path, Error};
 
 const COOKIE_FILE_NAME: &str = "cookie.json";
 
@@ -102,9 +102,7 @@ impl HTTPClientBuilder {
     pub(crate) async fn build(self) -> Result<HTTPClient, Error> {
         let mut cookie_store = None;
         if self.cookie {
-            cookie_store = Some(Arc::new(
-                self.create_cookie_store().await.location(here!())?,
-            ));
+            cookie_store = Some(Arc::new(self.create_cookie_store().await?));
         }
 
         let mut headers = HeaderMap::new();
@@ -132,21 +130,20 @@ impl HTTPClientBuilder {
         }
 
         if let Some(cert_path) = self.cert_path {
-            let cert = Certificate::from_pem(&fs::read(cert_path).await.location(here!())?)
-                .location(here!())?;
+            let cert = Certificate::from_pem(&fs::read(cert_path).await?)?;
             client_builder = client_builder.add_root_certificate(cert);
         }
 
         Ok(HTTPClient {
             app_name: self.app_name,
             cookie_store,
-            client: client_builder.build().location(here!())?,
+            client: client_builder.build()?,
         })
     }
 
     async fn create_cookie_store(&self) -> Result<CookieStoreMutex, Error> {
-        let mut config_dir = config_dir_path(self.app_name).location(here!())?;
-        fs::create_dir_all(&config_dir).await.location(here!())?;
+        let mut config_dir = config_dir_path(self.app_name)?;
+        fs::create_dir_all(&config_dir).await?;
 
         config_dir.push(COOKIE_FILE_NAME);
 
@@ -160,7 +157,7 @@ impl HTTPClientBuilder {
         } else {
             info!("The cookie file is located at: `{}`", config_dir.display());
 
-            let json = fs::read(&config_dir).await.location(here!())?;
+            let json = fs::read(&config_dir).await?;
             CookieStore::load_json(json.as_slice())?
         };
 
@@ -186,8 +183,7 @@ impl HTTPClient {
             .expect("Cookies not turned on")
             .lock()
             .unwrap()
-            .parse(cookie_str, url)
-            .location(here!())?;
+            .parse(cookie_str, url)?;
 
         Ok(())
     }

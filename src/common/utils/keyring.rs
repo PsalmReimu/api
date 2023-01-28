@@ -1,6 +1,6 @@
 use keyring::Entry;
 
-use crate::{here, Error, ErrorLocation, Location};
+use crate::Error;
 
 /// Access the Keyring of the platform
 #[must_use]
@@ -31,10 +31,7 @@ impl Keyring {
     where
         T: AsRef<str>,
     {
-        Ok(self
-            .entry
-            .set_password(password.as_ref())
-            .location(here!())?)
+        Ok(self.entry.set_password(password.as_ref())?)
     }
 
     /// Delete password

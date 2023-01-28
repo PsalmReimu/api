@@ -1,6 +1,6 @@
 use std::time::SystemTime;
 
-use crate::{here, Error, ErrorLocation, Location};
+use crate::Error;
 
 /// Timing tools for performance testing
 #[must_use]
@@ -25,7 +25,7 @@ impl Timing {
     /// Get the time difference from the creation time, and reset the creation time to the current time
     #[inline]
     pub fn elapsed(&mut self) -> Result<String, Error> {
-        let result = self.elapsed_str().location(here!())?;
+        let result = self.elapsed_str()?;
         self.now = SystemTime::now();
 
         Ok(result)
@@ -33,7 +33,7 @@ impl Timing {
 
     #[inline]
     fn elapsed_str(&self) -> Result<String, Error> {
-        let time = self.now.elapsed().location(here!())?;
+        let time = self.now.elapsed()?;
 
         let mut elapsed = time.as_millis();
         let mut unit = "ms";

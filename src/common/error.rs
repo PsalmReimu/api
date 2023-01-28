@@ -1,6 +1,3 @@
-use std::fmt::Display;
-
-use anyhow::{Context, Result};
 use http::StatusCode;
 use thiserror::Error;
 
@@ -61,42 +58,4 @@ pub struct Location {
     pub function_name: &'static str,
     pub line: u32,
     pub column: u32,
-}
-
-/// Add source code location
-pub trait ErrorLocation<T, E> {
-    fn location(self, loc: Location) -> Result<T>;
-}
-
-impl<T, E> ErrorLocation<T, E> for Result<T, E>
-where
-    E: Display,
-    Result<T, E>: Context<T, E>,
-{
-    fn location(self, loc: Location) -> Result<T> {
-        let msg = self.as_ref().err().map(ToString::to_string);
-        self.with_context(|| {
-            format!(
-                "{}, in function `{}`, at `{}:{}:{}`",
-                msg.unwrap(),
-                loc.function_name,
-                loc.file,
-                loc.line,
-                loc.column,
-            )
-        })
-    }
-}
-
-/// Macros for creating source code location
-#[macro_export]
-macro_rules! here {
-    () => {
-        Location {
-            file: file!(),
-            function_name: stdext::function_name!(),
-            line: line!(),
-            column: column!(),
-        }
-    };
 }

@@ -1,3 +1,4 @@
+mod structure;
 mod utils;
 
 use std::{
@@ -20,17 +21,16 @@ use image::{io::Reader, DynamicImage};
 use once_cell::sync::Lazy;
 use parking_lot::RwLock;
 use scraper::{Html, Selector};
-use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc, oneshot, OnceCell};
 use tracing::{info, warn};
 use url::Url;
 use warp::{http::Response, Filter};
 
 use crate::{
-    here, ChapterInfo, Client, ContentInfo, ContentInfos, Error, ErrorLocation, FindImageResult,
-    FindTextResult, HTTPClient, Identifier, Location, NovelDB, NovelInfo, Tag, Timing, UserInfo,
-    VolumeInfo, VolumeInfos,
+    ChapterInfo, Client, ContentInfo, ContentInfos, Error, FindImageResult, FindTextResult,
+    HTTPClient, Identifier, NovelDB, NovelInfo, Tag, UserInfo, VolumeInfo, VolumeInfos,
 };
+use structure::*;
 
 /// Ciweimao client, use it to access Apis
 #[must_use]
@@ -47,242 +47,6 @@ pub struct CiweimaoClient {
     account: RwLock<Option<String>>,
     login_token: RwLock<Option<String>>,
 }
-
-fn check_response(code: &str, tip: &Option<String>) -> Result<(), Error> {
-    if code != "100000" {
-        Err(Error::NovelApi(
-            tip.as_ref()
-                .expect("The error message does not exist")
-                .to_string(),
-        ))
-    } else {
-        Ok(())
-    }
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct UserInfoRequest {
-    app_version: String,
-    device_token: String,
-    account: String,
-    login_token: String,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct UserInfoResponse {
-    code: String,
-    tip: Option<String>,
-    data: Option<UserInfoData>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct UserInfoData {
-    reader_info: UserInfoReaderInfo,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct UserInfoReaderInfo {
-    reader_name: String,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct NovelInfoRequest {
-    app_version: String,
-    device_token: String,
-    account: String,
-    login_token: String,
-    book_id: u32,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct NovelInfoResponse {
-    code: String,
-    tip: Option<String>,
-    data: Option<NovelInfoData>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct NovelInfoData {
-    book_info: NovelInfoBookInfo,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct NovelInfoBookInfo {
-    book_name: String,
-    author_name: String,
-    cover: String,
-    description: String,
-    total_word_count: String,
-    up_status: String,
-    newtime: String,
-    uptime: String,
-    category_index: String,
-    tag: String,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct VolumesRequest {
-    app_version: String,
-    device_token: String,
-    account: String,
-    login_token: String,
-    book_id: u32,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct VolumesResponse {
-    code: String,
-    tip: Option<String>,
-    data: Option<VolumesData>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct VolumesData {
-    chapter_list: Vec<VolumesVolumeInfo>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct VolumesVolumeInfo {
-    division_name: String,
-    chapter_list: Vec<VolumesChapterInfo>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct VolumesChapterInfo {
-    chapter_id: String,
-    chapter_title: String,
-    word_count: String,
-    mtime: String,
-    is_valid: String,
-    auth_access: String,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct ChapsRequest {
-    app_version: String,
-    device_token: String,
-    account: String,
-    login_token: String,
-    chapter_id: String,
-    chapter_command: String,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct ChapsResponse {
-    code: String,
-    tip: Option<String>,
-    data: Option<ChapsData>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct ChapsData {
-    chapter_info: ChapsInfo,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct ChapsInfo {
-    txt_content: String,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct SearchRequest {
-    app_version: String,
-    device_token: String,
-    account: String,
-    login_token: String,
-    key: String,
-    count: u16,
-    page: u16,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct SearchResponse {
-    code: String,
-    tip: Option<String>,
-    data: Option<SearchData>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct SearchData {
-    book_list: Vec<SearchNovelInfo>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct SearchNovelInfo {
-    book_id: String,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct FavoritesRequest {
-    app_version: String,
-    device_token: String,
-    account: String,
-    login_token: String,
-    shelf_id: u32,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct FavoritesResponse {
-    code: String,
-    tip: Option<String>,
-    data: Option<FavoritesData>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct FavoritesData {
-    book_list: Vec<FavoritesInfo>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct FavoritesInfo {
-    book_info: FavoritesNovelInfo,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct FavoritesNovelInfo {
-    book_id: String,
-}
-
-static CATEGORIES: Lazy<AHashMap<u8, &str>> = Lazy::new(|| {
-    AHashMap::from([
-        (0, "全部分类"),
-        (1, "灵异未知"),
-        (3, "游戏竞技"),
-        (5, "仙侠武侠"),
-        (6, "科幻无限"),
-        (8, "玄幻奇幻"),
-        (11, "女频"),
-        (24, "免费同人"),
-        (27, "都市青春"),
-        (30, "历史军事"),
-    ])
-});
 
 #[async_trait]
 impl Client for CiweimaoClient {
@@ -302,11 +66,7 @@ impl Client for CiweimaoClient {
     }
 
     async fn add_cookie(&self, cookie_str: &str, url: &Url) -> Result<(), Error> {
-        self.client()
-            .await
-            .location(here!())?
-            .add_cookie(cookie_str, url)
-            .location(here!())?;
+        self.client().await?.add_cookie(cookie_str, url)?;
 
         Ok(())
     }
@@ -316,9 +76,7 @@ impl Client for CiweimaoClient {
         T: AsRef<str> + Send + Sync,
         E: AsRef<str> + Send + Sync,
     {
-        let mut timing = Timing::new();
-
-        let verify_type = self.verify_type(&username).await.location(here!())?;
+        let verify_type = self.verify_type(&username).await?;
         let (account, login_token);
 
         match verify_type {
@@ -339,14 +97,10 @@ impl Client for CiweimaoClient {
         *self.account.write() = Some(account);
         *self.login_token.write() = Some(login_token);
 
-        info!("Time spent on login: {}", timing.elapsed()?);
-
         Ok(())
     }
 
     async fn user_info(&self) -> Result<Option<UserInfo>, Error> {
-        let mut timing = Timing::new();
-
         if self.account().is_empty() || self.login_token().is_empty() {
             return Ok(None);
         }
@@ -361,26 +115,21 @@ impl Client for CiweimaoClient {
                     login_token: self.login_token(),
                 },
             )
-            .await
-            .location(here!())?;
+            .await?;
         if response.code == CiweimaoClient::LOGIN_EXPIRED {
             return Ok(None);
         }
-        check_response(&response.code, &response.tip).location(here!())?;
+        check_response(&response.code, &response.tip)?;
 
         let data = response.data.unwrap().reader_info;
         let user_info = UserInfo {
             nickname: data.reader_name,
         };
 
-        info!("Time spent on `/reader/get_my_info`: {}", timing.elapsed()?);
-
         Ok(Some(user_info))
     }
 
     async fn novel_info(&self, id: u32) -> Result<Option<NovelInfo>, Error> {
-        let mut timing = Timing::new();
-
         let response: NovelInfoResponse = self
             .post(
                 "/book/get_info_by_id",
@@ -392,12 +141,11 @@ impl Client for CiweimaoClient {
                     book_id: id,
                 },
             )
-            .await
-            .location(here!())?;
+            .await?;
         if response.code == CiweimaoClient::NOT_FOUND {
             return Ok(None);
         }
-        check_response(&response.code, &response.tip).location(here!())?;
+        check_response(&response.code, &response.tip)?;
 
         let data = response.data.unwrap().book_info;
         let novel_info = NovelInfo {
@@ -414,17 +162,10 @@ impl Client for CiweimaoClient {
             tags: CiweimaoClient::parse_tags(&data.tag),
         };
 
-        info!(
-            "Time spent on `/book/get_info_by_id`: {}",
-            timing.elapsed()?
-        );
-
         Ok(Some(novel_info))
     }
 
     async fn volume_infos(&self, id: u32) -> Result<VolumeInfos, Error> {
-        let mut timing = Timing::new();
-
         let response: VolumesResponse = self
             .post(
                 "/chapter/get_updated_chapter_by_division_new",
@@ -436,9 +177,8 @@ impl Client for CiweimaoClient {
                     book_id: id,
                 },
             )
-            .await
-            .location(here!())?;
-        check_response(&response.code, &response.tip).location(here!())?;
+            .await?;
+        check_response(&response.code, &response.tip)?;
 
         let mut volume_infos = VolumeInfos::new();
         for item in response.data.unwrap().chapter_list {
@@ -449,9 +189,7 @@ impl Client for CiweimaoClient {
 
             for chapter in item.chapter_list {
                 let chapter_info = ChapterInfo {
-                    identifier: Identifier::Id(
-                        chapter.chapter_id.parse::<u32>().location(here!())?,
-                    ),
+                    identifier: Identifier::Id(chapter.chapter_id.parse::<u32>()?),
                     title: chapter.chapter_title,
                     word_count: CiweimaoClient::parse_number(&chapter.word_count),
                     update_time: CiweimaoClient::parse_data_time(&chapter.mtime),
@@ -466,35 +204,18 @@ impl Client for CiweimaoClient {
             volume_infos.push(volume_info);
         }
 
-        info!(
-            "Time spent on `/chapter/get_updated_chapter_by_division_new`: {}",
-            timing.elapsed()?
-        );
-
         Ok(volume_infos)
     }
 
     async fn content_infos(&self, info: &ChapterInfo) -> Result<ContentInfos, Error> {
-        let mut timing = Timing::new();
-
         let content;
 
-        match self
-            .db()
-            .await
-            .location(here!())?
-            .find_text(info)
-            .await
-            .location(here!())?
-        {
+        match self.db().await?.find_text(info).await? {
             FindTextResult::Ok(str) => {
                 content = str;
             }
             other => {
-                let cmd = self
-                    .chapter_cmd(info.identifier.to_string())
-                    .await
-                    .location(here!())?;
+                let cmd = self.chapter_cmd(info.identifier.to_string()).await?;
                 let aes_key = sha::sha256(cmd.as_bytes());
 
                 let response: ChapsResponse = self
@@ -509,32 +230,18 @@ impl Client for CiweimaoClient {
                             chapter_command: cmd,
                         },
                     )
-                    .await
-                    .location(here!())?;
-                check_response(&response.code, &response.tip).location(here!())?;
+                    .await?;
+                check_response(&response.code, &response.tip)?;
 
                 let conetent = CiweimaoClient::aes_256_cbc_base64_decrypt(
                     aes_key,
                     response.data.unwrap().chapter_info.txt_content,
-                )
-                .location(here!())?;
+                )?;
                 content = simdutf8::basic::from_utf8(&conetent)?.to_string();
 
                 match other {
-                    FindTextResult::None => self
-                        .db()
-                        .await
-                        .location(here!())?
-                        .insert_text(info, &content)
-                        .await
-                        .location(here!())?,
-                    FindTextResult::Outdate => self
-                        .db()
-                        .await
-                        .location(here!())?
-                        .update_text(info, &content)
-                        .await
-                        .location(here!())?,
+                    FindTextResult::None => self.db().await?.insert_text(info, &content).await?,
+                    FindTextResult::Outdate => self.db().await?.update_text(info, &content).await?,
                     FindTextResult::Ok(_) => (),
                 }
             }
@@ -556,28 +263,14 @@ impl Client for CiweimaoClient {
             }
         }
 
-        info!(
-            "Time spent on `/chapter/get_cpt_ifm`: {}",
-            timing.elapsed()?
-        );
-
         Ok(content_infos)
     }
 
     async fn image_info(&self, url: &Url) -> Result<DynamicImage, Error> {
-        let mut timing = Timing::new();
-
-        let image = match self
-            .db()
-            .await
-            .location(here!())?
-            .find_image(url)
-            .await
-            .location(here!())?
-        {
+        let image = match self.db().await?.find_image(url).await? {
             FindImageResult::Ok(image) => Ok(image),
             FindImageResult::None => {
-                let response = self.get_rss(url).await.location(here!())?;
+                let response = self.get_rss(url).await?;
 
                 if response.status() != StatusCode::OK {
                     return Err(Error::Http {
@@ -586,29 +279,17 @@ impl Client for CiweimaoClient {
                     });
                 }
 
-                let bytes = response.bytes().await.location(here!())?;
+                let bytes = response.bytes().await?;
 
-                self.db()
-                    .await
-                    .location(here!())?
-                    .insert_image(url, &bytes)
-                    .await
-                    .location(here!())?;
+                self.db().await?.insert_image(url, &bytes).await?;
 
                 let image = Reader::new(Cursor::new(bytes))
                     .with_guessed_format()?
-                    .decode()
-                    .location(here!())?;
+                    .decode()?;
 
                 Ok(image)
             }
         };
-
-        info!(
-            "Time spent on download image: `{}`: {}",
-            url,
-            timing.elapsed()?
-        );
 
         image
     }
@@ -617,8 +298,6 @@ impl Client for CiweimaoClient {
     where
         T: AsRef<str> + Send + Sync,
     {
-        let mut timing = Timing::new();
-
         let response: SearchResponse = self
             .post(
                 "/bookcity/get_filter_search_book_list",
@@ -632,29 +311,21 @@ impl Client for CiweimaoClient {
                     page,
                 },
             )
-            .await
-            .location(here!())?;
-        check_response(&response.code, &response.tip).location(here!())?;
+            .await?;
+        check_response(&response.code, &response.tip)?;
 
         let mut result = Vec::new();
         if response.data.is_some() {
             for novel_info in response.data.unwrap().book_list {
-                result.push(novel_info.book_id.parse::<u32>().location(here!())?);
+                result.push(novel_info.book_id.parse::<u32>()?);
             }
         }
-
-        info!(
-            "Time spent on `/bookcity/get_filter_search_book_list`: {}",
-            timing.elapsed()?
-        );
 
         Ok(result)
     }
 
     async fn favorite_infos(&self) -> Result<Vec<u32>, Error> {
-        let mut timing = Timing::new();
-
-        let shelf_id = self.shelf_list().await.location(here!())?;
+        let shelf_id = self.shelf_list().await?;
 
         let response: FavoritesResponse = self
             .post(
@@ -667,208 +338,25 @@ impl Client for CiweimaoClient {
                     shelf_id,
                 },
             )
-            .await
-            .location(here!())?;
-        check_response(&response.code, &response.tip).location(here!())?;
+            .await?;
+        check_response(&response.code, &response.tip)?;
 
         let mut result = Vec::new();
         let data = response.data.unwrap().book_list;
 
         for novel_info in data {
-            result.push(
-                novel_info
-                    .book_info
-                    .book_id
-                    .parse::<u32>()
-                    .location(here!())?,
-            );
+            result.push(novel_info.book_info.book_id.parse::<u32>()?);
         }
-
-        info!(
-            "Time spent on `/bookshelf/get_shelf_book_list_new`: {}",
-            timing.elapsed()?
-        );
 
         Ok(result)
     }
 }
 
 #[must_use]
-#[derive(Debug)]
 enum VerifyType {
     None,
     Geetest,
     VerifyCode,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct UseGeetestRequest {
-    app_version: String,
-    device_token: String,
-    login_name: String,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct UseGeetestResponse {
-    code: String,
-    tip: Option<String>,
-    data: Option<UseGeetestData>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct UseGeetestData {
-    need_use_geetest: String,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct GeetestInfoRequest {
-    t: u64,
-    user_id: String,
-}
-
-#[must_use]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct GeetestInfoResponse {
-    success: u8,
-    gt: String,
-    challenge: String,
-    new_captcha: bool,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct SendVerifyCodeRequest {
-    account: String,
-    app_version: String,
-    device_token: String,
-    hashvalue: String,
-    login_name: String,
-    timestamp: String,
-    verify_type: String,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct SendVerifyCodeResponse {
-    code: String,
-    tip: Option<String>,
-    data: Option<SendVerifyCodeData>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct SendVerifyCodeData {
-    to_code: String,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct LoginRequest {
-    app_version: String,
-    device_token: String,
-    login_name: String,
-    passwd: String,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct LoginCaptchaRequest {
-    app_version: String,
-    device_token: String,
-    login_name: String,
-    passwd: String,
-    geetest_seccode: String,
-    geetest_validate: String,
-    geetest_challenge: String,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct LoginSMSRequest {
-    app_version: String,
-    device_token: String,
-    login_name: String,
-    passwd: String,
-    to_code: String,
-    ver_code: String,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct LoginResponse {
-    code: String,
-    tip: Option<String>,
-    data: Option<LoginData>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct LoginData {
-    login_token: String,
-    reader_info: LoginReaderInfo,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct LoginReaderInfo {
-    account: String,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct ChapterCmdRequest {
-    app_version: String,
-    device_token: String,
-    account: String,
-    login_token: String,
-    chapter_id: String,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct ChapterCmdResponse {
-    code: String,
-    tip: Option<String>,
-    data: Option<ChapterCmdData>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct ChapterCmdData {
-    command: String,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct ShelfListRequest {
-    app_version: String,
-    device_token: String,
-    account: String,
-    login_token: String,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct ShelfListResponse {
-    code: String,
-    tip: Option<String>,
-    data: Option<ShelfListData>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct ShelfListData {
-    shelf_list: Vec<ShelfList>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct ShelfList {
-    shelf_id: String,
 }
 
 impl CiweimaoClient {
@@ -885,9 +373,8 @@ impl CiweimaoClient {
                     login_name: username.as_ref().to_string(),
                 },
             )
-            .await
-            .location(here!())?;
-        check_response(&response.code, &response.tip).location(here!())?;
+            .await?;
+        check_response(&response.code, &response.tip)?;
 
         let data = response.data.unwrap();
         if data.need_use_geetest == "0" {
@@ -920,9 +407,8 @@ impl CiweimaoClient {
                     passwd: password.as_ref().to_string(),
                 },
             )
-            .await
-            .location(here!())?;
-        check_response(&response.code, &response.tip).location(here!())?;
+            .await?;
+        check_response(&response.code, &response.tip)?;
 
         let data = response.data.unwrap();
         Ok((data.reader_info.account, data.login_token))
@@ -933,8 +419,10 @@ impl CiweimaoClient {
         T: AsRef<str> + Send + Sync,
         E: AsRef<str> + Send + Sync,
     {
-        let info = self.geetest_info(&username).await.location(here!())?;
-        let validate = CiweimaoClient::run_server(&info).await.location(here!())?;
+        let info = self.geetest_info(&username).await?;
+        let geetest_challenge = info.challenge.clone();
+
+        let validate = CiweimaoClient::run_server(info).await?;
 
         let response: LoginResponse = self
             .post(
@@ -946,12 +434,11 @@ impl CiweimaoClient {
                     passwd: password.as_ref().to_string(),
                     geetest_seccode: validate.to_string() + "|jordan",
                     geetest_validate: validate,
-                    geetest_challenge: info.challenge,
+                    geetest_challenge,
                 },
             )
-            .await
-            .location(here!())?;
-        check_response(&response.code, &response.tip).location(here!())?;
+            .await?;
+        check_response(&response.code, &response.tip)?;
 
         let data = response.data.unwrap();
         Ok((data.reader_info.account, data.login_token))
@@ -971,11 +458,9 @@ impl CiweimaoClient {
                     user_id: username.as_ref().to_string(),
                 },
             )
-            .await
-            .location(here!())?
+            .await?
             .json::<GeetestInfoResponse>()
-            .await
-            .location(here!())?;
+            .await?;
 
         if response.success != 1 {
             return Err(Error::NovelApi(
@@ -987,9 +472,7 @@ impl CiweimaoClient {
     }
 
     // TODO 更美观的页面
-    async fn run_server(info: &GeetestInfoResponse) -> Result<String, Error> {
-        // TODO use std::path::MAIN_SEPARATOR_STR
-        // https://doc.rust-lang.org/std/path/constant.MAIN_SEPARATOR_STR.html
+    async fn run_server(info: GeetestInfoResponse) -> Result<String, Error> {
         #[cfg(target_os = "windows")]
         macro_rules! PATH_SEPARATOR {
             () => {
@@ -1015,7 +498,6 @@ impl CiweimaoClient {
                 )))
         });
 
-        let info = info.clone();
         let index = warp::path("captcha").map(move || {
             let html = format!(
                 include_str!(concat!("assets", PATH_SEPARATOR!(), "index.html")),
@@ -1035,16 +517,17 @@ impl CiweimaoClient {
 
         let (stop_tx, stop_rx) = oneshot::channel();
         let (addr, server) = warp::serve(index.or(js).or(validate)).bind_with_graceful_shutdown(
-            // TODO 处理端口被占用的情况
-            ([127, 0, 0, 1], 3030),
+            (
+                [127, 0, 0, 1],
+                portpicker::pick_unused_port().expect("No ports free"),
+            ),
             async {
                 stop_rx.await.ok();
             },
         );
         tokio::task::spawn(server);
 
-        opener::open_browser(format!("http://{}:{}/captcha", addr.ip(), addr.port()))
-            .location(here!())?;
+        opener::open_browser(format!("http://{}:{}/captcha", addr.ip(), addr.port()))?;
 
         let validate = rx.recv().await.unwrap();
         let _ = stop_tx.send(());
@@ -1068,8 +551,7 @@ impl CiweimaoClient {
         let md5 = hash::hash(
             MessageDigest::md5(),
             format!("{account}{timestamp}").as_bytes(),
-        )
-        .location(here!())?;
+        )?;
 
         let response: SendVerifyCodeResponse = self
             .post(
@@ -1084,15 +566,14 @@ impl CiweimaoClient {
                     verify_type: String::from("5"),
                 },
             )
-            .await
-            .location(here!())?;
-        check_response(&response.code, &response.tip).location(here!())?;
+            .await?;
+        check_response(&response.code, &response.tip)?;
 
         print!("Please enter SMS verification code: ");
-        io::stdout().flush().location(here!())?;
+        io::stdout().flush()?;
 
         let mut ver_code = String::new();
-        io::stdin().read_line(&mut ver_code).location(here!())?;
+        io::stdin().read_line(&mut ver_code)?;
 
         let response: LoginResponse = self
             .post(
@@ -1106,15 +587,14 @@ impl CiweimaoClient {
                     ver_code: ver_code.trim().to_string(),
                 },
             )
-            .await
-            .location(here!())?;
-        check_response(&response.code, &response.tip).location(here!())?;
+            .await?;
+        check_response(&response.code, &response.tip)?;
 
         let data = response.data.unwrap();
         Ok((data.reader_info.account, data.login_token))
     }
 
-    // TODO /chapter/get_chapter_cmd_s
+    // TODO use /chapter/get_chapter_cmd_s
     async fn chapter_cmd<T>(&self, identifier: T) -> Result<String, Error>
     where
         T: AsRef<str>,
@@ -1130,11 +610,29 @@ impl CiweimaoClient {
                     chapter_id: identifier.as_ref().to_string(),
                 },
             )
-            .await
-            .location(here!())?;
-        check_response(&response.code, &response.tip).location(here!())?;
+            .await?;
+        check_response(&response.code, &response.tip)?;
 
         Ok(response.data.unwrap().command)
+    }
+
+    async fn shelf_list(&self) -> Result<u32, Error> {
+        let response: ShelfListResponse = self
+            .post(
+                "/bookshelf/get_shelf_list",
+                &ShelfListRequest {
+                    app_version: CiweimaoClient::APP_VERSION.to_string(),
+                    device_token: CiweimaoClient::DEVICE_TOKEN.to_string(),
+                    account: self.account(),
+                    login_token: self.login_token(),
+                },
+            )
+            .await?;
+        check_response(&response.code, &response.tip)?;
+
+        Ok(response.data.unwrap().shelf_list[0]
+            .shelf_id
+            .parse::<u32>()?)
     }
 
     fn parse_data_time<T>(str: T) -> Option<NaiveDateTime>
@@ -1242,6 +740,21 @@ impl CiweimaoClient {
             return None;
         }
 
+        static CATEGORIES: Lazy<AHashMap<u8, &str>> = Lazy::new(|| {
+            AHashMap::from([
+                (0, "全部分类"),
+                (1, "灵异未知"),
+                (3, "游戏竞技"),
+                (5, "仙侠武侠"),
+                (6, "科幻无限"),
+                (8, "玄幻奇幻"),
+                (11, "女频"),
+                (24, "免费同人"),
+                (27, "都市青春"),
+                (30, "历史军事"),
+            ])
+        });
+
         match str.parse::<u8>() {
             Ok(index) => match CATEGORIES.get(&index) {
                 Some(str) => Some(str.to_string()),
@@ -1306,26 +819,5 @@ impl CiweimaoClient {
         let url = url.unwrap();
 
         CiweimaoClient::parse_url(url)
-    }
-
-    async fn shelf_list(&self) -> Result<u32, Error> {
-        let response: ShelfListResponse = self
-            .post(
-                "/bookshelf/get_shelf_list",
-                &ShelfListRequest {
-                    app_version: CiweimaoClient::APP_VERSION.to_string(),
-                    device_token: CiweimaoClient::DEVICE_TOKEN.to_string(),
-                    account: self.account(),
-                    login_token: self.login_token(),
-                },
-            )
-            .await
-            .location(here!())?;
-        check_response(&response.code, &response.tip).location(here!())?;
-
-        Ok(response.data.unwrap().shelf_list[0]
-            .shelf_id
-            .parse::<u32>()
-            .location(here!())?)
     }
 }

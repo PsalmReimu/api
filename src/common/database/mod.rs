@@ -13,7 +13,7 @@ use tokio::{
 use tracing::info;
 use url::Url;
 
-use crate::{here, ChapterInfo, Error, ErrorLocation, Location, Timing};
+use crate::{ChapterInfo, Error, Timing};
 use entity::{Image, Text};
 use migration::{Migrator, MigratorTrait};
 
@@ -41,8 +41,8 @@ impl NovelDB {
     pub(crate) async fn new(app_name: &str) -> Result<Self, Error> {
         let mut timing = Timing::new();
 
-        let mut db_path = crate::data_dir_path(app_name).location(here!())?;
-        fs::create_dir_all(&db_path).await.location(here!())?;
+        let mut db_path = crate::data_dir_path(app_name)?;
+        fs::create_dir_all(&db_path).await?;
 
         db_path.push("novel.db");
 
@@ -56,8 +56,8 @@ impl NovelDB {
         }
 
         let db_url = format!("sqlite:{}?mode=rwc", db_path.display());
-        let db = Database::connect(db_url).await.location(here!())?;
-        Migrator::up(&db, None).await.location(here!())?;
+        let db = Database::connect(db_url).await?;
+        Migrator::up(&db, None).await?;
 
         info!("Database creation takes `{}`", timing.elapsed()?);
 
@@ -66,17 +66,14 @@ impl NovelDB {
 
     #[cfg(test)]
     pub(crate) async fn drop(&self) -> Result<(), Error> {
-        Ok(Migrator::down(&self.db, None).await.location(here!())?)
+        Ok(Migrator::down(&self.db, None).await?)
     }
 
     pub(crate) async fn find_text(&self, info: &ChapterInfo) -> Result<FindTextResult, Error> {
         let identifier = info.identifier.to_string();
         let time = info.update_time;
 
-        let model = Text::find_by_id(identifier)
-            .one(&self.db)
-            .await
-            .location(here!())?;
+        let model = Text::find_by_id(identifier).one(&self.db).await?;
 
         match model {
             Some(model) => {
@@ -89,9 +86,7 @@ impl NovelDB {
                     Ok(FindTextResult::Outdate)
                 } else {
                     Ok(FindTextResult::Ok(unsafe {
-                        String::from_utf8_unchecked(
-                            zstd_decompress(&model.text).await.location(here!())?,
-                        )
+                        String::from_utf8_unchecked(zstd_decompress(&model.text).await?)
                     }))
                 }
             }
@@ -107,13 +102,9 @@ impl NovelDB {
         let model = entity::text::ActiveModel {
             identifier: sea_orm::Set(info.identifier.to_string()),
             date_time: sea_orm::Set(info.update_time),
-            text: sea_orm::Set(
-                zstd_compress(text.as_ref().as_bytes())
-                    .await
-                    .location(here!())?,
-            ),
+            text: sea_orm::Set(zstd_compress(text.as_ref().as_bytes()).await?),
         };
-        model.insert(&self.db).await.location(here!())?;
+        model.insert(&self.db).await?;
 
         Ok(())
     }
@@ -125,30 +116,22 @@ impl NovelDB {
         let model = entity::text::ActiveModel {
             identifier: sea_orm::Set(info.identifier.to_string()),
             date_time: sea_orm::Set(info.update_time),
-            text: sea_orm::Set(
-                zstd_compress(text.as_ref().as_bytes())
-                    .await
-                    .location(here!())?,
-            ),
+            text: sea_orm::Set(zstd_compress(text.as_ref().as_bytes()).await?),
         };
-        model.update(&self.db).await.location(here!())?;
+        model.update(&self.db).await?;
 
         Ok(())
     }
 
     pub(crate) async fn find_image(&self, url: &Url) -> Result<FindImageResult, Error> {
-        let model = Image::find_by_id(url.to_string())
-            .one(&self.db)
-            .await
-            .location(here!())?;
+        let model = Image::find_by_id(url.to_string()).one(&self.db).await?;
 
         match model {
             Some(model) => {
-                let bytes = zstd_decompress(&model.image).await.location(here!())?;
+                let bytes = zstd_decompress(&model.image).await?;
                 let image = Reader::new(Cursor::new(bytes))
                     .with_guessed_format()?
-                    .decode()
-                    .location(here!())?;
+                    .decode()?;
 
                 Ok(FindImageResult::Ok(image))
             }
@@ -162,9 +145,9 @@ impl NovelDB {
     {
         let model = entity::image::ActiveModel {
             url: sea_orm::Set(url.to_string()),
-            image: sea_orm::Set(zstd_compress(bytes).await.location(here!())?),
+            image: sea_orm::Set(zstd_compress(bytes).await?),
         };
-        model.insert(&self.db).await.location(here!())?;
+        model.insert(&self.db).await?;
 
         Ok(())
     }
@@ -176,7 +159,7 @@ where
 {
     let mut reader = ZstdDecoder::new(BufReader::new(data.as_ref()));
     let mut buf = Vec::new();
-    reader.read_to_end(&mut buf).await.location(here!())?;
+    reader.read_to_end(&mut buf).await?;
     Ok(buf)
 }
 
@@ -185,11 +168,11 @@ where
     T: AsRef<[u8]>,
 {
     let mut writer = ZstdEncoder::new(Vec::new());
-    writer.write_all(data.as_ref()).await.location(here!())?;
-    writer.shutdown().await.location(here!())?;
+    writer.write_all(data.as_ref()).await?;
+    writer.shutdown().await?;
 
     let mut res = writer.into_inner();
-    res.flush().await.location(here!())?;
+    res.flush().await?;
 
     Ok(res)
 }
@@ -209,8 +192,8 @@ mod tests {
     async fn zstd() -> Result<(), Error> {
         let data = "test-data";
 
-        let compressed_data = zstd_compress(data).await.location(here!())?;
-        let decompressed_data = zstd_decompress(compressed_data).await.location(here!())?;
+        let compressed_data = zstd_compress(data).await?;
+        let decompressed_data = zstd_decompress(compressed_data).await?;
 
         assert_eq!(data.as_bytes(), decompressed_data.as_slice());
 

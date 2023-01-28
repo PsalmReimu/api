@@ -1,3 +1,4 @@
+mod structure;
 mod utils;
 
 use std::{
@@ -6,19 +7,17 @@ use std::{
 };
 
 use async_trait::async_trait;
-use chrono::NaiveDateTime;
 use http::StatusCode;
 use image::{io::Reader, DynamicImage};
-use serde::{Deserialize, Serialize};
 use tokio::sync::OnceCell;
-use tracing::{info, warn};
+use tracing::warn;
 use url::Url;
 
 use crate::{
-    here, ChapterInfo, Client, ContentInfo, ContentInfos, Error, ErrorLocation, FindImageResult,
-    FindTextResult, HTTPClient, Identifier, Location, NovelDB, NovelInfo, Tag, Timing, UserInfo,
-    VolumeInfo, VolumeInfos,
+    ChapterInfo, Client, ContentInfo, ContentInfos, Error, FindImageResult, FindTextResult,
+    HTTPClient, Identifier, NovelDB, NovelInfo, Tag, UserInfo, VolumeInfo, VolumeInfos,
 };
+use structure::*;
 
 /// Sfacg client, use it to access Apis
 #[must_use]
@@ -31,253 +30,6 @@ pub struct SfacgClient {
     client_rss: OnceCell<HTTPClient>,
 
     db: OnceCell<NovelDB>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct Status {
-    http_code: u16,
-    error_code: u16,
-    msg_type: u16,
-    msg: Option<String>,
-}
-
-impl Status {
-    #[must_use]
-    fn ok(&self) -> bool {
-        self.http_code == StatusCode::OK && self.error_code == 200
-    }
-
-    #[must_use]
-    fn not_found(&self) -> bool {
-        self.http_code == StatusCode::NOT_FOUND && self.error_code == 404
-    }
-
-    #[must_use]
-    fn unauthorized(&self) -> bool {
-        self.http_code == StatusCode::UNAUTHORIZED && self.error_code == 502
-    }
-
-    fn check(&self) -> Result<(), Error> {
-        if !self.ok() {
-            return Err(Error::Http {
-                code: StatusCode::from_u16(self.http_code).location(here!())?,
-                msg: self.msg.clone().expect("The error message does not exist"),
-            })
-            .location(here!())?;
-        }
-
-        Ok(())
-    }
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct LoginRequest {
-    user_name: String,
-    pass_word: String,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct LoginResponse {
-    status: Status,
-    data: Option<String>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct PositionResponse {
-    status: Status,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct UserResponse {
-    status: Status,
-    data: Option<UserData>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct UserData {
-    nick_name: String,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct NovelsRequest {
-    expand: Option<&'static str>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct NovelsResponse {
-    status: Status,
-    data: Option<NovelsData>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct NovelsData {
-    novel_id: u32,
-    novel_name: String,
-    novel_cover: Url,
-    author_name: String,
-    char_count: i32,
-    is_finish: bool,
-    add_time: NaiveDateTime,
-    last_update_time: NaiveDateTime,
-    expand: NovelsExpand,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct NovelsExpand {
-    type_name: String,
-    intro: String,
-    sys_tags: Vec<NovelsSysTag>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct NovelsSysTag {
-    tag_name: String,
-    sys_tag_id: u16,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct NovelsDirsResponse {
-    status: Status,
-    data: Option<NovelsDirsData>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct NovelsDirsData {
-    volume_list: Vec<NovelsDirsVolumeInfo>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct NovelsDirsVolumeInfo {
-    volume_id: u32,
-    title: String,
-    chapter_list: Vec<NovelsDirsChapterInfo>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct NovelsDirsChapterInfo {
-    chap_id: u32,
-    title: String,
-    char_count: u16,
-    is_vip: bool,
-    need_fire_money: u16,
-    #[serde(rename = "AddTime")]
-    add_time: NaiveDateTime,
-    update_time: Option<NaiveDateTime>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct ChapsRequest {
-    expand: Option<&'static str>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct ChapsResponse {
-    status: Status,
-    data: Option<ChapsData>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct ChapsData {
-    expand: ChapsExpand,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct ChapsExpand {
-    content: String,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct SearchRequest {
-    expand: Option<&'static str>,
-    page: u16,
-    q: String,
-    size: u16,
-    sort: &'static str,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct SearchResponse {
-    status: Status,
-    data: Option<SearchData>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct SearchData {
-    novels: Vec<SearchNovelInfo>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct SearchNovelInfo {
-    novel_id: u32,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct FavoritesRequest {
-    expand: Option<&'static str>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct FavoritesResponse {
-    status: Status,
-    data: Option<Vec<FavoritesData>>,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-struct FavoritesData {
-    name: String,
-    expand: FavoritesExpand,
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-enum FavoritesExpand {
-    Novels(Vec<FavoritesNovelsData>),
-    Albums(Vec<FavoritesNovelsData>),
-    Comics(Vec<FavoritesNovelsData>),
-}
-
-#[must_use]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct FavoritesNovelsData {
-    novel_id: u32,
 }
 
 #[async_trait]
@@ -298,11 +50,7 @@ impl Client for SfacgClient {
     }
 
     async fn add_cookie(&self, cookie_str: &str, url: &Url) -> Result<(), Error> {
-        self.client()
-            .await
-            .location(here!())?
-            .add_cookie(cookie_str, url)
-            .location(here!())?;
+        self.client().await?.add_cookie(cookie_str, url)?;
 
         Ok(())
     }
@@ -312,8 +60,6 @@ impl Client for SfacgClient {
         T: AsRef<str> + Send + Sync,
         E: AsRef<str> + Send + Sync,
     {
-        let mut timing = Timing::new();
-
         let response = self
             .post(
                 "/sessions",
@@ -322,56 +68,36 @@ impl Client for SfacgClient {
                     pass_word: password.as_ref().to_string(),
                 },
             )
-            .await
-            .location(here!())?
+            .await?
             .json::<LoginResponse>()
-            .await
-            .location(here!())?;
-        response.status.check().location(here!())?;
-
-        info!("Time spent on `/sessions`: {}", timing.elapsed()?);
+            .await?;
+        response.status.check()?;
 
         let response = self
             .get("/position")
-            .await
-            .location(here!())?
+            .await?
             .json::<PositionResponse>()
-            .await
-            .location(here!())?;
-        response.status.check().location(here!())?;
-
-        info!("Time spent on `/position`: {}", timing.elapsed()?);
+            .await?;
+        response.status.check()?;
 
         Ok(())
     }
 
     async fn user_info(&self) -> Result<Option<UserInfo>, Error> {
-        let mut timing = Timing::new();
-
-        let response = self
-            .get("/user")
-            .await
-            .location(here!())?
-            .json::<UserResponse>()
-            .await
-            .location(here!())?;
+        let response = self.get("/user").await?.json::<UserResponse>().await?;
         if response.status.unauthorized() {
             return Ok(None);
         }
-        response.status.check().location(here!())?;
+        response.status.check()?;
 
         let info = UserInfo {
             nickname: response.data.unwrap().nick_name.trim().to_string(),
         };
 
-        info!("Time spent on `/user`: {}", timing.elapsed()?);
-
         Ok(Some(info))
     }
 
     async fn novel_info(&self, id: u32) -> Result<Option<NovelInfo>, Error> {
-        let mut timing = Timing::new();
-
         let response = self
             .get_query(
                 format!("/novels/{id}"),
@@ -379,82 +105,46 @@ impl Client for SfacgClient {
                     expand: Some("intro,typeName,sysTags"),
                 },
             )
-            .await
-            .location(here!())?
+            .await?
             .json::<NovelsResponse>()
-            .await
-            .location(here!())?;
+            .await?;
         if response.status.not_found() {
             return Ok(None);
         }
-        response.status.check().location(here!())?;
+        response.status.check()?;
 
         let novel_data = response.data.unwrap();
 
-        let mut tags = vec![];
-        for tag in novel_data.expand.sys_tags {
-            tags.push(Tag {
-                id: Some(tag.sys_tag_id),
-                name: tag.tag_name.trim().to_string(),
-            });
-        }
-        let tags = if tags.is_empty() { None } else { Some(tags) };
-
-        let introduction = novel_data
-            .expand
-            .intro
-            .lines()
-            .map(|line| line.trim().to_string())
-            .filter(|line| !line.is_empty())
-            .collect::<Vec<String>>();
-        let introduction = if introduction.is_empty() {
+        let word_count = if novel_data.char_count < 0 {
             None
         } else {
-            Some(introduction)
-        };
-
-        // FIXME
-        // e.g. sfacg novel-id 539889, char count is negative number
-        let word_count = if novel_data.char_count < 0 {
-            0
-        } else {
-            novel_data.char_count as u32
+            Some(novel_data.char_count as u32)
         };
 
         let novel_info = NovelInfo {
-            id: novel_data.novel_id,
+            id,
             name: novel_data.novel_name.trim().to_string(),
             author_name: novel_data.author_name.trim().to_string(),
             cover_url: Some(novel_data.novel_cover),
-            introduction,
-            word_count: Some(word_count),
+            introduction: SfacgClient::parse_intro(novel_data.expand.intro),
+            word_count,
             finished: Some(novel_data.is_finish),
             create_time: Some(novel_data.add_time),
             update_time: Some(novel_data.last_update_time),
             genre: Some(novel_data.expand.type_name.trim().to_string()),
-            tags,
+            tags: SfacgClient::parse_tags(novel_data.expand.sys_tags),
         };
-
-        info!(
-            "Time spent on `{}`: {}",
-            format!("/novels/{id}"),
-            timing.elapsed()?
-        );
 
         Ok(Some(novel_info))
     }
 
     async fn volume_infos(&self, id: u32) -> Result<VolumeInfos, Error> {
-        let mut timing = Timing::new();
-
         let response = self
             .get(format!("/novels/{id}/dirs"))
-            .await
-            .location(here!())?
+            .await?
             .json::<NovelsDirsResponse>()
-            .await
-            .location(here!())?;
-        response.status.check().location(here!())?;
+            .await?;
+        response.status.check()?;
 
         let mut volumes = VolumeInfos::new();
 
@@ -471,14 +161,20 @@ impl Client for SfacgClient {
                     Some(chapter.add_time)
                 };
 
+                let word_count = if chapter.char_count < 0 {
+                    None
+                } else {
+                    Some(chapter.char_count as u16)
+                };
+
                 let chapter_info = ChapterInfo {
                     identifier: Identifier::Id(chapter.chap_id),
                     title: chapter.title.trim().to_string(),
-                    word_count: Some(chapter.char_count),
+                    word_count,
                     update_time,
                     is_vip: Some(chapter.is_vip),
                     accessible: Some(chapter.need_fire_money == 0),
-                    is_valid: Some(true),
+                    is_valid: None,
                 };
 
                 volume_info.chapter_infos.push(chapter_info);
@@ -487,28 +183,13 @@ impl Client for SfacgClient {
             volumes.push(volume_info);
         }
 
-        info!(
-            "Time spent on `{}`: {}",
-            format!("/novels/{id}/dirs"),
-            timing.elapsed()?
-        );
-
         Ok(volumes)
     }
 
     async fn content_infos(&self, info: &ChapterInfo) -> Result<ContentInfos, Error> {
-        let mut timing = Timing::new();
-
         let content;
 
-        match self
-            .db()
-            .await
-            .location(here!())?
-            .find_text(info)
-            .await
-            .location(here!())?
-        {
+        match self.db().await?.find_text(info).await? {
             FindTextResult::Ok(str) => {
                 content = str;
             }
@@ -520,30 +201,16 @@ impl Client for SfacgClient {
                             expand: Some("content"),
                         },
                     )
-                    .await
-                    .location(here!())?
+                    .await?
                     .json::<ChapsResponse>()
-                    .await
-                    .location(here!())?;
-                response.status.check().location(here!())?;
+                    .await?;
+                response.status.check()?;
 
                 content = response.data.unwrap().expand.content;
 
                 match other {
-                    FindTextResult::None => self
-                        .db()
-                        .await
-                        .location(here!())?
-                        .insert_text(info, &content)
-                        .await
-                        .location(here!())?,
-                    FindTextResult::Outdate => self
-                        .db()
-                        .await
-                        .location(here!())?
-                        .update_text(info, &content)
-                        .await
-                        .location(here!())?,
+                    FindTextResult::None => self.db().await?.insert_text(info, &content).await?,
+                    FindTextResult::Outdate => self.db().await?.update_text(info, &content).await?,
                     FindTextResult::Ok(_) => (),
                 }
             }
@@ -557,38 +224,22 @@ impl Client for SfacgClient {
             .filter(|line| !line.is_empty())
         {
             if line.starts_with("[img") {
-                match SfacgClient::parser_image_url(line) {
-                    Ok(url) => content_infos.push(ContentInfo::Image(url)),
-                    Err(error) => warn!("{}", error),
+                if let Some(url) = SfacgClient::parse_image_url(line) {
+                    content_infos.push(ContentInfo::Image(url));
                 }
             } else {
                 content_infos.push(ContentInfo::Text(line.to_string()));
             }
         }
 
-        info!(
-            "Time spent on `{}`: {}",
-            format!("/Chaps/{}", info.identifier.to_string()),
-            timing.elapsed()?
-        );
-
         Ok(content_infos)
     }
 
     async fn image_info(&self, url: &Url) -> Result<DynamicImage, Error> {
-        let mut timing = Timing::new();
-
-        let image = match self
-            .db()
-            .await
-            .location(here!())?
-            .find_image(url)
-            .await
-            .location(here!())?
-        {
+        match self.db().await?.find_image(url).await? {
             FindImageResult::Ok(image) => Ok(image),
             FindImageResult::None => {
-                let response = self.get_rss(url).await.location(here!())?;
+                let response = self.get_rss(url).await?;
 
                 if response.status() != StatusCode::OK {
                     return Err(Error::Http {
@@ -597,39 +248,23 @@ impl Client for SfacgClient {
                     });
                 }
 
-                let bytes = response.bytes().await.location(here!())?;
+                let bytes = response.bytes().await?;
 
-                self.db()
-                    .await
-                    .location(here!())?
-                    .insert_image(url, &bytes)
-                    .await
-                    .location(here!())?;
+                self.db().await?.insert_image(url, &bytes).await?;
 
                 let image = Reader::new(Cursor::new(bytes))
                     .with_guessed_format()?
-                    .decode()
-                    .location(here!())?;
+                    .decode()?;
 
                 Ok(image)
             }
-        };
-
-        info!(
-            "Time spent on download image: `{}`: {}",
-            url,
-            timing.elapsed()?
-        );
-
-        image
+        }
     }
 
     async fn search_infos<T>(&self, text: T, page: u16, size: u16) -> Result<Vec<u32>, Error>
     where
         T: AsRef<str> + Send + Sync,
     {
-        let mut timing = Timing::new();
-
         let response = self
             .get_query(
                 "/search/novels/result/new",
@@ -641,12 +276,10 @@ impl Client for SfacgClient {
                     sort: "hot",
                 },
             )
-            .await
-            .location(here!())?
+            .await?
             .json::<SearchResponse>()
-            .await
-            .location(here!())?;
-        response.status.check().location(here!())?;
+            .await?;
+        response.status.check()?;
 
         let mut result = Vec::new();
 
@@ -656,17 +289,10 @@ impl Client for SfacgClient {
             }
         }
 
-        info!(
-            "Time spent on `/search/novels/result/new`: {}",
-            timing.elapsed()?
-        );
-
         Ok(result)
     }
 
     async fn favorite_infos(&self) -> Result<Vec<u32>, Error> {
-        let mut timing = Timing::new();
-
         let response = self
             .get_query(
                 "/user/Pockets",
@@ -674,12 +300,10 @@ impl Client for SfacgClient {
                     expand: Some("novels,albums,comics"),
                 },
             )
-            .await
-            .location(here!())?
+            .await?
             .json::<FavoritesResponse>()
-            .await
-            .location(here!())?;
-        response.status.check().location(here!())?;
+            .await?;
+        response.status.check()?;
 
         let mut result = Vec::new();
 
@@ -693,27 +317,51 @@ impl Client for SfacgClient {
             }
         }
 
-        info!("Time spent on `/user/Pockets`: {}", timing.elapsed()?);
-
         Ok(result)
     }
 }
 
 impl SfacgClient {
-    fn parser_image_url(line: &str) -> Result<Url, Error> {
+    fn parse_tags(sys_tags: Vec<NovelsSysTag>) -> Option<Vec<Tag>> {
+        let mut result = vec![];
+        for tag in sys_tags {
+            result.push(Tag {
+                id: Some(tag.sys_tag_id),
+                name: tag.tag_name.trim().to_string(),
+            });
+        }
+
+        if result.is_empty() {
+            None
+        } else {
+            Some(result)
+        }
+    }
+
+    fn parse_intro(intro: String) -> Option<Vec<String>> {
+        let introduction = intro
+            .lines()
+            .map(|line| line.trim().to_string())
+            .filter(|line| !line.is_empty())
+            .collect::<Vec<String>>();
+
+        if introduction.is_empty() {
+            None
+        } else {
+            Some(introduction)
+        }
+    }
+
+    fn parse_image_url(line: &str) -> Option<Url> {
         let begin = line.find("https");
         let end = line.find("[/img]");
 
-        let begin = begin
-            .ok_or(Error::NovelApi(format!(
-                "Image insertion format is incorrect: {line}"
-            )))
-            .location(here!())?;
-        let end = end
-            .ok_or(Error::NovelApi(format!(
-                "Image insertion format is incorrect: {line}"
-            )))
-            .location(here!())?;
+        if begin.is_none() || end.is_none() {
+            warn!("Image URL format is incorrect: {line}");
+        }
+
+        let begin = begin.unwrap();
+        let end = end.unwrap();
 
         let url = line
             .chars()
@@ -723,6 +371,12 @@ impl SfacgClient {
             .trim()
             .to_string();
 
-        Ok(Url::parse(&url).location(here!())?)
+        match Url::parse(&url) {
+            Ok(url) => Some(url),
+            Err(error) => {
+                warn!("Image URL parse failed: {line}, error: {error}");
+                None
+            }
+        }
     }
 }

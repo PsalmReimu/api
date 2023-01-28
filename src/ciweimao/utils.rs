@@ -11,7 +11,7 @@ use tokio::sync::OnceCell;
 use tracing::{info, warn};
 use url::Url;
 
-use crate::{here, CiweimaoClient, Error, ErrorLocation, HTTPClient, Location, NovelDB};
+use crate::{CiweimaoClient, Error, HTTPClient, NovelDB};
 
 #[must_use]
 #[derive(Default, Debug, Serialize, Deserialize)]
@@ -59,8 +59,7 @@ impl CiweimaoClient {
     }
 
     fn load_config_file() -> Result<(Option<String>, Option<String>), Error> {
-        let mut config_file_path =
-            crate::config_dir_path(CiweimaoClient::APP_NAME).location(here!())?;
+        let mut config_file_path = crate::config_dir_path(CiweimaoClient::APP_NAME)?;
         config_file_path.push(CiweimaoClient::CONFIG_FILE_NAME);
 
         if config_file_path.exists() {
@@ -69,15 +68,14 @@ impl CiweimaoClient {
                 config_file_path.display()
             );
 
-            let config: Config = confy::load_path(config_file_path).location(here!())?;
+            let config: Config = confy::load_path(config_file_path)?;
 
             let mut ignore_config_file = false;
             if config.version.is_empty() {
                 ignore_config_file = true;
             } else {
-                let version = Version::parse(&config.version).location(here!())?;
-                let req = VersionReq::parse(&format!("^{}", CiweimaoClient::CONFIG_VERSION))
-                    .location(here!())?;
+                let version = Version::parse(&config.version)?;
+                let req = VersionReq::parse(&format!("^{}", CiweimaoClient::CONFIG_VERSION))?;
 
                 if !req.matches(&version) {
                     ignore_config_file = true;
@@ -161,26 +159,17 @@ impl CiweimaoClient {
     {
         let response = self
             .client()
-            .await
-            .location(here!())?
+            .await?
             .get(CiweimaoClient::HOST.to_string() + url.as_ref())
             .query(query)
             .send()
-            .await
-            .location(here!())?;
+            .await?;
 
         Ok(response)
     }
 
     pub(crate) async fn get_rss(&self, url: &Url) -> Result<Response, Error> {
-        let response = self
-            .client_rss()
-            .await
-            .location(here!())?
-            .get(url.clone())
-            .send()
-            .await
-            .location(here!())?;
+        let response = self.client_rss().await?.get(url.clone()).send().await?;
 
         Ok(response)
     }
@@ -192,22 +181,17 @@ impl CiweimaoClient {
     {
         let response = self
             .client()
-            .await
-            .location(here!())?
+            .await?
             .post(CiweimaoClient::HOST.to_string() + url)
             .form(form)
             .send()
-            .await
-            .location(here!())?;
+            .await?;
 
-        let bytes = response.bytes().await.location(here!())?;
+        let bytes = response.bytes().await?;
         let bytes =
-            CiweimaoClient::aes_256_cbc_base64_decrypt(CiweimaoClient::get_default_key(), &bytes)
-                .location(here!())?;
+            CiweimaoClient::aes_256_cbc_base64_decrypt(CiweimaoClient::get_default_key(), &bytes)?;
 
-        Ok(serde_json::from_str(
-            simdutf8::basic::from_utf8(&bytes).location(here!())?,
-        )?)
+        Ok(serde_json::from_str(simdutf8::basic::from_utf8(&bytes)?)?)
     }
 
     #[must_use]
@@ -222,11 +206,10 @@ impl CiweimaoClient {
         E: AsRef<[u8]>,
     {
         let base64 = base64_simd::STANDARD;
-        let decoded = base64.decode_to_vec(data.as_ref()).location(here!())?;
+        let decoded = base64.decode_to_vec(data.as_ref())?;
 
         let cipher = Cipher::aes_256_cbc();
-        let result =
-            symm::decrypt(cipher, key.as_ref(), Some(&[0; 16]), &decoded).location(here!())?;
+        let result = symm::decrypt(cipher, key.as_ref(), Some(&[0; 16]), &decoded)?;
 
         Ok(result)
     }
