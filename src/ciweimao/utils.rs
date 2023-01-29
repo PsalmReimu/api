@@ -14,7 +14,7 @@ use url::Url;
 use crate::{CiweimaoClient, Error, HTTPClient, NovelDB};
 
 #[must_use]
-#[derive(Default, Debug, Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 struct Config {
     version: String,
     account: String,
@@ -22,17 +22,18 @@ struct Config {
 }
 
 impl CiweimaoClient {
+    pub(crate) const OK: &str = "100000";
     pub(crate) const LOGIN_EXPIRED: &str = "200100";
     pub(crate) const NOT_FOUND: &str = "320001";
+
+    pub(crate) const APP_VERSION: &str = "2.9.293";
+    pub(crate) const DEVICE_TOKEN: &str = "ciweimao_";
+
+    const HOST: &str = "https://app.hbooker.com";
 
     const APP_NAME: &str = "ciweimao";
     const CONFIG_FILE_NAME: &str = "config.toml";
     const CONFIG_VERSION: &str = "0.1.0";
-
-    const HOST: &str = "https://app.hbooker.com";
-
-    pub(crate) const APP_VERSION: &str = "2.9.293";
-    pub(crate) const DEVICE_TOKEN: &str = "ciweimao_";
 
     // TODO use iOS side
     const USER_AGENT: &str =
@@ -64,7 +65,7 @@ impl CiweimaoClient {
 
         if config_file_path.exists() {
             info!(
-                "The config file is located in: `{}`",
+                "The config file is located at: `{}`",
                 config_file_path.display()
             );
 
@@ -90,7 +91,7 @@ impl CiweimaoClient {
             }
         } else {
             info!(
-                "The config file will be created in: `{}`",
+                "The config file will be created at: `{}`",
                 config_file_path.display()
             );
 
@@ -98,22 +99,29 @@ impl CiweimaoClient {
         }
     }
 
+    #[must_use]
+    #[inline]
     pub(crate) fn account(&self) -> String {
-        if self.account.read().is_some() {
-            self.account.read().as_ref().unwrap().to_string()
-        } else {
-            String::default()
-        }
+        self.account.read().as_ref().unwrap().to_string()
     }
 
+    #[must_use]
+    #[inline]
     pub(crate) fn login_token(&self) -> String {
-        if self.login_token.read().is_some() {
-            self.login_token.read().as_ref().unwrap().to_string()
-        } else {
-            String::default()
-        }
+        self.login_token.read().as_ref().unwrap().to_string()
     }
 
+    #[must_use]
+    pub(crate) fn has_token(&self) -> bool {
+        self.account.read().is_some() && self.login_token.read().is_some()
+    }
+
+    pub(crate) fn save_token(&self, account: String, login_token: String) {
+        *self.account.write() = Some(account);
+        *self.login_token.write() = Some(login_token);
+    }
+
+    #[inline]
     pub(crate) async fn client(&self) -> Result<&HTTPClient, Error> {
         self.client
             .get_or_try_init(|| async {
@@ -130,6 +138,7 @@ impl CiweimaoClient {
             .await
     }
 
+    #[inline]
     pub(crate) async fn client_rss(&self) -> Result<&HTTPClient, Error> {
         self.client_rss
             .get_or_try_init(|| async {
@@ -146,34 +155,34 @@ impl CiweimaoClient {
             .await
     }
 
+    #[inline]
     pub(crate) async fn db(&self) -> Result<&NovelDB, Error> {
         self.db
             .get_or_try_init(|| async { NovelDB::new(CiweimaoClient::APP_NAME).await })
             .await
     }
 
+    #[inline]
     pub(crate) async fn get_query<T, E>(&self, url: T, query: &E) -> Result<Response, Error>
     where
         T: AsRef<str>,
         E: Serialize,
     {
-        let response = self
+        Ok(self
             .client()
             .await?
             .get(CiweimaoClient::HOST.to_string() + url.as_ref())
             .query(query)
             .send()
-            .await?;
-
-        Ok(response)
+            .await?)
     }
 
+    #[inline]
     pub(crate) async fn get_rss(&self, url: &Url) -> Result<Response, Error> {
-        let response = self.client_rss().await?.get(url.clone()).send().await?;
-
-        Ok(response)
+        Ok(self.client_rss().await?.get(url.clone()).send().await?)
     }
 
+    #[inline]
     pub(crate) async fn post<T, E>(&self, url: &str, form: &E) -> Result<T, Error>
     where
         T: DeserializeOwned,
@@ -195,11 +204,13 @@ impl CiweimaoClient {
     }
 
     #[must_use]
+    #[inline]
     fn get_default_key() -> &'static [u8; 32] {
         static AES_KEY: SyncOnceCell<[u8; 32]> = SyncOnceCell::new();
         AES_KEY.get_or_init(|| sha::sha256(CiweimaoClient::AES_KEY.as_bytes()))
     }
 
+    #[inline]
     pub(crate) fn aes_256_cbc_base64_decrypt<T, E>(key: T, data: E) -> Result<Vec<u8>, Error>
     where
         T: AsRef<[u8]>,
@@ -217,11 +228,11 @@ impl CiweimaoClient {
 
 impl Drop for CiweimaoClient {
     fn drop(&mut self) {
-        if self.account.read().is_some() && self.login_token.read().is_some() {
+        if self.has_token() {
             let config = Config {
                 version: CiweimaoClient::CONFIG_VERSION.to_string(),
-                account: self.account.read().as_ref().unwrap().to_string(),
-                login_token: self.login_token.read().as_ref().unwrap().to_string(),
+                account: self.account(),
+                login_token: self.login_token(),
             };
 
             let mut config_file_path = crate::config_dir_path(CiweimaoClient::APP_NAME)

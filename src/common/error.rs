@@ -12,8 +12,6 @@ pub enum Error {
     #[error(transparent)]
     StdParseInt(#[from] std::num::ParseIntError),
     #[error(transparent)]
-    Anyhow(#[from] anyhow::Error),
-    #[error(transparent)]
     Reqwest(#[from] reqwest::Error),
     #[error(transparent)]
     Boring(#[from] boring::error::ErrorStack),

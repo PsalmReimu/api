@@ -98,6 +98,8 @@ impl Client for SfacgClient {
     }
 
     async fn novel_info(&self, id: u32) -> Result<Option<NovelInfo>, Error> {
+        assert!(id <= i32::MAX as u32);
+
         let response = self
             .get_query(
                 format!("/novels/{id}"),
@@ -139,6 +141,8 @@ impl Client for SfacgClient {
     }
 
     async fn volume_infos(&self, id: u32) -> Result<VolumeInfos, Error> {
+        assert!(id <= i32::MAX as u32);
+
         let response = self
             .get(format!("/novels/{id}/dirs"))
             .await?

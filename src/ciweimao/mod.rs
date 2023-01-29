@@ -66,9 +66,7 @@ impl Client for CiweimaoClient {
     }
 
     async fn add_cookie(&self, cookie_str: &str, url: &Url) -> Result<(), Error> {
-        self.client().await?.add_cookie(cookie_str, url)?;
-
-        Ok(())
+        Ok(self.client().await?.add_cookie(cookie_str, url)?)
     }
 
     async fn login<T, E>(&self, username: T, password: E) -> Result<(), Error>
@@ -94,14 +92,13 @@ impl Client for CiweimaoClient {
             }
         };
 
-        *self.account.write() = Some(account);
-        *self.login_token.write() = Some(login_token);
+        self.save_token(account, login_token);
 
         Ok(())
     }
 
     async fn user_info(&self) -> Result<Option<UserInfo>, Error> {
-        if self.account().is_empty() || self.login_token().is_empty() {
+        if !self.has_token() {
             return Ok(None);
         }
 
@@ -109,8 +106,8 @@ impl Client for CiweimaoClient {
             .post(
                 "/reader/get_my_info",
                 &UserInfoRequest {
-                    app_version: CiweimaoClient::APP_VERSION.to_string(),
-                    device_token: CiweimaoClient::DEVICE_TOKEN.to_string(),
+                    app_version: CiweimaoClient::APP_VERSION,
+                    device_token: CiweimaoClient::DEVICE_TOKEN,
                     account: self.account(),
                     login_token: self.login_token(),
                 },
@@ -119,7 +116,7 @@ impl Client for CiweimaoClient {
         if response.code == CiweimaoClient::LOGIN_EXPIRED {
             return Ok(None);
         }
-        check_response(&response.code, &response.tip)?;
+        check_response(response.code, response.tip)?;
 
         let data = response.data.unwrap().reader_info;
         let user_info = UserInfo {
@@ -134,8 +131,8 @@ impl Client for CiweimaoClient {
             .post(
                 "/book/get_info_by_id",
                 &NovelInfoRequest {
-                    app_version: CiweimaoClient::APP_VERSION.to_string(),
-                    device_token: CiweimaoClient::DEVICE_TOKEN.to_string(),
+                    app_version: CiweimaoClient::APP_VERSION,
+                    device_token: CiweimaoClient::DEVICE_TOKEN,
                     account: self.account(),
                     login_token: self.login_token(),
                     book_id: id,
@@ -145,21 +142,21 @@ impl Client for CiweimaoClient {
         if response.code == CiweimaoClient::NOT_FOUND {
             return Ok(None);
         }
-        check_response(&response.code, &response.tip)?;
+        check_response(response.code, response.tip)?;
 
         let data = response.data.unwrap().book_info;
         let novel_info = NovelInfo {
             id,
             name: data.book_name,
             author_name: data.author_name,
-            cover_url: CiweimaoClient::parse_url(&data.cover),
-            introduction: CiweimaoClient::parse_introduction(&data.description),
-            word_count: CiweimaoClient::parse_number(&data.total_word_count),
-            finished: CiweimaoClient::parse_bool(&data.up_status),
-            create_time: CiweimaoClient::parse_data_time(&data.newtime),
-            update_time: CiweimaoClient::parse_data_time(&data.uptime),
-            genre: CiweimaoClient::parse_genre(&data.category_index),
-            tags: CiweimaoClient::parse_tags(&data.tag),
+            cover_url: CiweimaoClient::parse_url(data.cover),
+            introduction: CiweimaoClient::parse_introduction(data.description),
+            word_count: CiweimaoClient::parse_number(data.total_word_count),
+            finished: CiweimaoClient::parse_bool(data.up_status),
+            create_time: CiweimaoClient::parse_data_time(data.newtime),
+            update_time: CiweimaoClient::parse_data_time(data.uptime),
+            genre: CiweimaoClient::parse_genre(data.category_index),
+            tags: CiweimaoClient::parse_tags(data.tag),
         };
 
         Ok(Some(novel_info))
@@ -170,15 +167,15 @@ impl Client for CiweimaoClient {
             .post(
                 "/chapter/get_updated_chapter_by_division_new",
                 &VolumesRequest {
-                    app_version: CiweimaoClient::APP_VERSION.to_string(),
-                    device_token: CiweimaoClient::DEVICE_TOKEN.to_string(),
+                    app_version: CiweimaoClient::APP_VERSION,
+                    device_token: CiweimaoClient::DEVICE_TOKEN,
                     account: self.account(),
                     login_token: self.login_token(),
                     book_id: id,
                 },
             )
             .await?;
-        check_response(&response.code, &response.tip)?;
+        check_response(response.code, response.tip)?;
 
         let mut volume_infos = VolumeInfos::new();
         for item in response.data.unwrap().chapter_list {
@@ -191,11 +188,11 @@ impl Client for CiweimaoClient {
                 let chapter_info = ChapterInfo {
                     identifier: Identifier::Id(chapter.chapter_id.parse::<u32>()?),
                     title: chapter.chapter_title,
-                    word_count: CiweimaoClient::parse_number(&chapter.word_count),
-                    update_time: CiweimaoClient::parse_data_time(&chapter.mtime),
+                    word_count: CiweimaoClient::parse_number(chapter.word_count),
+                    update_time: CiweimaoClient::parse_data_time(chapter.mtime),
                     is_vip: None,
-                    accessible: CiweimaoClient::parse_bool(&chapter.auth_access),
-                    is_valid: CiweimaoClient::parse_bool(&chapter.is_valid),
+                    accessible: CiweimaoClient::parse_bool(chapter.auth_access),
+                    is_valid: CiweimaoClient::parse_bool(chapter.is_valid),
                 };
 
                 volume_info.chapter_infos.push(chapter_info);
@@ -215,23 +212,24 @@ impl Client for CiweimaoClient {
                 content = str;
             }
             other => {
-                let cmd = self.chapter_cmd(info.identifier.to_string()).await?;
+                let identifier = info.identifier.to_string();
+                let cmd = self.chapter_cmd(&identifier).await?;
                 let aes_key = sha::sha256(cmd.as_bytes());
 
                 let response: ChapsResponse = self
                     .post(
                         "/chapter/get_cpt_ifm",
                         &ChapsRequest {
-                            app_version: CiweimaoClient::APP_VERSION.to_string(),
-                            device_token: CiweimaoClient::DEVICE_TOKEN.to_string(),
+                            app_version: CiweimaoClient::APP_VERSION,
+                            device_token: CiweimaoClient::DEVICE_TOKEN,
                             account: self.account(),
                             login_token: self.login_token(),
-                            chapter_id: info.identifier.to_string(),
+                            chapter_id: identifier,
                             chapter_command: cmd,
                         },
                     )
                     .await?;
-                check_response(&response.code, &response.tip)?;
+                check_response(response.code, response.tip)?;
 
                 let conetent = CiweimaoClient::aes_256_cbc_base64_decrypt(
                     aes_key,
@@ -302,8 +300,8 @@ impl Client for CiweimaoClient {
             .post(
                 "/bookcity/get_filter_search_book_list",
                 &SearchRequest {
-                    app_version: CiweimaoClient::APP_VERSION.to_string(),
-                    device_token: CiweimaoClient::DEVICE_TOKEN.to_string(),
+                    app_version: CiweimaoClient::APP_VERSION,
+                    device_token: CiweimaoClient::DEVICE_TOKEN,
                     account: self.account(),
                     login_token: self.login_token(),
                     key: text.as_ref().to_string(),
@@ -312,7 +310,7 @@ impl Client for CiweimaoClient {
                 },
             )
             .await?;
-        check_response(&response.code, &response.tip)?;
+        check_response(response.code, response.tip)?;
 
         let mut result = Vec::new();
         if response.data.is_some() {
@@ -331,21 +329,21 @@ impl Client for CiweimaoClient {
             .post(
                 "/bookshelf/get_shelf_book_list_new",
                 &FavoritesRequest {
-                    app_version: CiweimaoClient::APP_VERSION.to_string(),
-                    device_token: CiweimaoClient::DEVICE_TOKEN.to_string(),
+                    app_version: CiweimaoClient::APP_VERSION,
+                    device_token: CiweimaoClient::DEVICE_TOKEN,
                     account: self.account(),
                     login_token: self.login_token(),
                     shelf_id,
                 },
             )
             .await?;
-        check_response(&response.code, &response.tip)?;
+        check_response(response.code, response.tip)?;
 
         let mut result = Vec::new();
-        let data = response.data.unwrap().book_list;
-
-        for novel_info in data {
-            result.push(novel_info.book_info.book_id.parse::<u32>()?);
+        if response.data.is_some() {
+            for novel_info in response.data.unwrap().book_list {
+                result.push(novel_info.book_info.book_id.parse::<u32>()?);
+            }
         }
 
         Ok(result)
@@ -368,13 +366,13 @@ impl CiweimaoClient {
             .post(
                 "/signup/use_geetest",
                 &UseGeetestRequest {
-                    app_version: CiweimaoClient::APP_VERSION.to_string(),
-                    device_token: CiweimaoClient::DEVICE_TOKEN.to_string(),
+                    app_version: CiweimaoClient::APP_VERSION,
+                    device_token: CiweimaoClient::DEVICE_TOKEN,
                     login_name: username.as_ref().to_string(),
                 },
             )
             .await?;
-        check_response(&response.code, &response.tip)?;
+        check_response(response.code, response.tip)?;
 
         let data = response.data.unwrap();
         if data.need_use_geetest == "0" {
@@ -401,14 +399,14 @@ impl CiweimaoClient {
             .post(
                 "/signup/login",
                 &LoginRequest {
-                    app_version: CiweimaoClient::APP_VERSION.to_string(),
-                    device_token: CiweimaoClient::DEVICE_TOKEN.to_string(),
+                    app_version: CiweimaoClient::APP_VERSION,
+                    device_token: CiweimaoClient::DEVICE_TOKEN,
                     login_name: username.as_ref().to_string(),
                     passwd: password.as_ref().to_string(),
                 },
             )
             .await?;
-        check_response(&response.code, &response.tip)?;
+        check_response(response.code, response.tip)?;
 
         let data = response.data.unwrap();
         Ok((data.reader_info.account, data.login_token))
@@ -428,8 +426,8 @@ impl CiweimaoClient {
             .post(
                 "/signup/login",
                 &LoginCaptchaRequest {
-                    app_version: CiweimaoClient::APP_VERSION.to_string(),
-                    device_token: CiweimaoClient::DEVICE_TOKEN.to_string(),
+                    app_version: CiweimaoClient::APP_VERSION,
+                    device_token: CiweimaoClient::DEVICE_TOKEN,
                     login_name: username.as_ref().to_string(),
                     passwd: password.as_ref().to_string(),
                     geetest_seccode: validate.to_string() + "|jordan",
@@ -438,7 +436,7 @@ impl CiweimaoClient {
                 },
             )
             .await?;
-        check_response(&response.code, &response.tip)?;
+        check_response(response.code, response.tip)?;
 
         let data = response.data.unwrap();
         Ok((data.reader_info.account, data.login_token))
@@ -558,8 +556,8 @@ impl CiweimaoClient {
                 "/signup/send_verify_code",
                 &SendVerifyCodeRequest {
                     account,
-                    app_version: CiweimaoClient::APP_VERSION.to_string(),
-                    device_token: CiweimaoClient::DEVICE_TOKEN.to_string(),
+                    app_version: CiweimaoClient::APP_VERSION,
+                    device_token: CiweimaoClient::DEVICE_TOKEN,
                     hashvalue: hex_simd::encode_to_string(md5, AsciiCase::Lower),
                     login_name: username.as_ref().to_string(),
                     timestamp: timestamp.to_string(),
@@ -567,7 +565,7 @@ impl CiweimaoClient {
                 },
             )
             .await?;
-        check_response(&response.code, &response.tip)?;
+        check_response(response.code, response.tip)?;
 
         print!("Please enter SMS verification code: ");
         io::stdout().flush()?;
@@ -579,8 +577,8 @@ impl CiweimaoClient {
             .post(
                 "/signup/login",
                 &LoginSMSRequest {
-                    app_version: CiweimaoClient::APP_VERSION.to_string(),
-                    device_token: CiweimaoClient::DEVICE_TOKEN.to_string(),
+                    app_version: CiweimaoClient::APP_VERSION,
+                    device_token: CiweimaoClient::DEVICE_TOKEN,
                     login_name: username.as_ref().to_string(),
                     passwd: password.as_ref().to_string(),
                     to_code: response.data.unwrap().to_code,
@@ -588,7 +586,7 @@ impl CiweimaoClient {
                 },
             )
             .await?;
-        check_response(&response.code, &response.tip)?;
+        check_response(response.code, response.tip)?;
 
         let data = response.data.unwrap();
         Ok((data.reader_info.account, data.login_token))
@@ -603,15 +601,15 @@ impl CiweimaoClient {
             .post(
                 "/chapter/get_chapter_cmd",
                 &ChapterCmdRequest {
-                    app_version: CiweimaoClient::APP_VERSION.to_string(),
-                    device_token: CiweimaoClient::DEVICE_TOKEN.to_string(),
+                    app_version: CiweimaoClient::APP_VERSION,
+                    device_token: CiweimaoClient::DEVICE_TOKEN,
                     account: self.account(),
                     login_token: self.login_token(),
                     chapter_id: identifier.as_ref().to_string(),
                 },
             )
             .await?;
-        check_response(&response.code, &response.tip)?;
+        check_response(response.code, response.tip)?;
 
         Ok(response.data.unwrap().command)
     }
@@ -621,14 +619,14 @@ impl CiweimaoClient {
             .post(
                 "/bookshelf/get_shelf_list",
                 &ShelfListRequest {
-                    app_version: CiweimaoClient::APP_VERSION.to_string(),
-                    device_token: CiweimaoClient::DEVICE_TOKEN.to_string(),
+                    app_version: CiweimaoClient::APP_VERSION,
+                    device_token: CiweimaoClient::DEVICE_TOKEN,
                     account: self.account(),
                     login_token: self.login_token(),
                 },
             )
             .await?;
-        check_response(&response.code, &response.tip)?;
+        check_response(response.code, response.tip)?;
 
         Ok(response.data.unwrap().shelf_list[0]
             .shelf_id
@@ -647,7 +645,7 @@ impl CiweimaoClient {
         match NaiveDateTime::from_str(&str.replace(' ', "T")) {
             Ok(data_time) => Some(data_time),
             Err(error) => {
-                warn!("data_time parse failed: {error}, content: {str}");
+                warn!("`NaiveDateTime` parse failed: {error}, content: {str}");
 
                 None
             }
@@ -667,7 +665,7 @@ impl CiweimaoClient {
         match str.parse::<E>() {
             Ok(word_count) => Some(word_count),
             Err(_) => {
-                warn!("number parse failed: conetent: {str}");
+                warn!("`Number` parse failed: conetent: {str}");
                 None
             }
         }
@@ -701,7 +699,7 @@ impl CiweimaoClient {
         match Url::parse(str) {
             Ok(url) => Some(url),
             Err(error) => {
-                warn!("Url parse failed: {error}: {str}");
+                warn!("`Url` parse failed: {error}, content: {str}");
                 None
             }
         }
@@ -813,7 +811,7 @@ impl CiweimaoClient {
 
         let url = element.value().attr("src");
         if url.is_none() {
-            warn!("No `src` element exists: {str}");
+            warn!("No `src` attribute exists: {str}");
             return None;
         }
         let url = url.unwrap();

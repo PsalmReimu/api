@@ -1,10 +1,13 @@
 use serde::{Deserialize, Serialize};
 
-use crate::Error;
+use crate::{CiweimaoClient, Error};
 
-pub(crate) fn check_response(code: &str, tip: &Option<String>) -> Result<(), Error> {
-    if code != "100000" {
-        Err(Error::NovelApi(tip.as_ref().unwrap().to_string()))
+pub(crate) fn check_response(code: String, tip: Option<String>) -> Result<(), Error> {
+    if code != CiweimaoClient::OK {
+        Err(Error::NovelApi(format!(
+            "ciweimao request failed, code: `{code}`, msg: `{}`",
+            tip.unwrap()
+        )))
     } else {
         Ok(())
     }
@@ -13,8 +16,8 @@ pub(crate) fn check_response(code: &str, tip: &Option<String>) -> Result<(), Err
 #[must_use]
 #[derive(Serialize)]
 pub(crate) struct UserInfoRequest {
-    pub app_version: String,
-    pub device_token: String,
+    pub app_version: &'static str,
+    pub device_token: &'static str,
     pub account: String,
     pub login_token: String,
 }
@@ -42,8 +45,8 @@ pub(crate) struct UserInfoReaderInfo {
 #[must_use]
 #[derive(Serialize)]
 pub(crate) struct NovelInfoRequest {
-    pub app_version: String,
-    pub device_token: String,
+    pub app_version: &'static str,
+    pub device_token: &'static str,
     pub account: String,
     pub login_token: String,
     pub book_id: u32,
@@ -81,8 +84,8 @@ pub(crate) struct NovelInfoBookInfo {
 #[must_use]
 #[derive(Serialize)]
 pub(crate) struct VolumesRequest {
-    pub app_version: String,
-    pub device_token: String,
+    pub app_version: &'static str,
+    pub device_token: &'static str,
     pub account: String,
     pub login_token: String,
     pub book_id: u32,
@@ -123,8 +126,8 @@ pub(crate) struct VolumesChapterInfo {
 #[must_use]
 #[derive(Serialize)]
 pub(crate) struct ChapsRequest {
-    pub app_version: String,
-    pub device_token: String,
+    pub app_version: &'static str,
+    pub device_token: &'static str,
     pub account: String,
     pub login_token: String,
     pub chapter_id: String,
@@ -154,8 +157,8 @@ pub(crate) struct ChapsInfo {
 #[must_use]
 #[derive(Serialize)]
 pub(crate) struct SearchRequest {
-    pub app_version: String,
-    pub device_token: String,
+    pub app_version: &'static str,
+    pub device_token: &'static str,
     pub account: String,
     pub login_token: String,
     pub key: String,
@@ -186,8 +189,8 @@ pub(crate) struct SearchNovelInfo {
 #[must_use]
 #[derive(Serialize)]
 pub(crate) struct FavoritesRequest {
-    pub app_version: String,
-    pub device_token: String,
+    pub app_version: &'static str,
+    pub device_token: &'static str,
     pub account: String,
     pub login_token: String,
     pub shelf_id: u32,
@@ -222,8 +225,8 @@ pub(crate) struct FavoritesNovelInfo {
 #[must_use]
 #[derive(Serialize)]
 pub(crate) struct UseGeetestRequest {
-    pub app_version: String,
-    pub device_token: String,
+    pub app_version: &'static str,
+    pub device_token: &'static str,
     pub login_name: String,
 }
 
@@ -261,8 +264,8 @@ pub(crate) struct GeetestInfoResponse {
 #[derive(Serialize)]
 pub(crate) struct SendVerifyCodeRequest {
     pub account: String,
-    pub app_version: String,
-    pub device_token: String,
+    pub app_version: &'static str,
+    pub device_token: &'static str,
     pub hashvalue: String,
     pub login_name: String,
     pub timestamp: String,
@@ -286,8 +289,8 @@ pub(crate) struct SendVerifyCodeData {
 #[must_use]
 #[derive(Serialize)]
 pub(crate) struct LoginRequest {
-    pub app_version: String,
-    pub device_token: String,
+    pub app_version: &'static str,
+    pub device_token: &'static str,
     pub login_name: String,
     pub passwd: String,
 }
@@ -295,8 +298,8 @@ pub(crate) struct LoginRequest {
 #[must_use]
 #[derive(Serialize)]
 pub(crate) struct LoginCaptchaRequest {
-    pub app_version: String,
-    pub device_token: String,
+    pub app_version: &'static str,
+    pub device_token: &'static str,
     pub login_name: String,
     pub passwd: String,
     pub geetest_seccode: String,
@@ -307,8 +310,8 @@ pub(crate) struct LoginCaptchaRequest {
 #[must_use]
 #[derive(Serialize)]
 pub(crate) struct LoginSMSRequest {
-    pub app_version: String,
-    pub device_token: String,
+    pub app_version: &'static str,
+    pub device_token: &'static str,
     pub login_name: String,
     pub passwd: String,
     pub to_code: String,
@@ -339,8 +342,8 @@ pub(crate) struct LoginReaderInfo {
 #[must_use]
 #[derive(Serialize)]
 pub(crate) struct ChapterCmdRequest {
-    pub app_version: String,
-    pub device_token: String,
+    pub app_version: &'static str,
+    pub device_token: &'static str,
     pub account: String,
     pub login_token: String,
     pub chapter_id: String,
@@ -363,8 +366,8 @@ pub(crate) struct ChapterCmdData {
 #[must_use]
 #[derive(Serialize)]
 pub(crate) struct ShelfListRequest {
-    pub app_version: String,
-    pub device_token: String,
+    pub app_version: &'static str,
+    pub device_token: &'static str,
     pub account: String,
     pub login_token: String,
 }
