@@ -15,7 +15,7 @@ use tokio::fs;
 use tracing::info;
 use url::Url;
 
-use crate::{config_dir_path, Error};
+use crate::Error;
 
 const COOKIE_FILE_NAME: &str = "cookie.json";
 
@@ -142,7 +142,7 @@ impl HTTPClientBuilder {
     }
 
     async fn create_cookie_store(&self) -> Result<CookieStoreMutex, Error> {
-        let mut config_dir = config_dir_path(self.app_name)?;
+        let mut config_dir = crate::config_dir_path(self.app_name)?;
         fs::create_dir_all(&config_dir).await?;
 
         config_dir.push(COOKIE_FILE_NAME);
@@ -200,7 +200,7 @@ impl Deref for HTTPClient {
 impl Drop for HTTPClient {
     fn drop(&mut self) {
         if let Some(ref cookie_store) = self.cookie_store {
-            let mut config_path = config_dir_path(self.app_name)
+            let mut config_path = crate::config_dir_path(self.app_name)
                 .expect("Failed to get the path to the project's config directory");
             config_path.push(COOKIE_FILE_NAME);
 

@@ -45,15 +45,6 @@ pub enum Error {
     StatusCode(#[from] http::status::InvalidStatusCode),
     #[error("{0}")]
     NovelApi(String),
-    #[error("The HTTP request was unsuccessful, status code: `{code}`, message: `{msg}`")]
+    #[error("The HTTP request failed, status code: `{code}`, message: `{msg}`")]
     Http { code: StatusCode, msg: String },
-}
-
-/// Source code location
-#[must_use]
-pub struct Location {
-    pub file: &'static str,
-    pub function_name: &'static str,
-    pub line: u32,
-    pub column: u32,
 }

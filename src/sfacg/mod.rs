@@ -50,9 +50,7 @@ impl Client for SfacgClient {
     }
 
     async fn add_cookie(&self, cookie_str: &str, url: &Url) -> Result<(), Error> {
-        self.client().await?.add_cookie(cookie_str, url)?;
-
-        Ok(())
+        Ok(self.client().await?.add_cookie(cookie_str, url)?)
     }
 
     async fn login<T, E>(&self, username: T, password: E) -> Result<(), Error>
@@ -117,7 +115,7 @@ impl Client for SfacgClient {
 
         let novel_data = response.data.unwrap();
 
-        let word_count = if novel_data.char_count < 0 {
+        let word_count = if novel_data.char_count <= 0 {
             None
         } else {
             Some(novel_data.char_count as u32)
@@ -165,7 +163,7 @@ impl Client for SfacgClient {
                     Some(chapter.add_time)
                 };
 
-                let word_count = if chapter.char_count < 0 {
+                let word_count = if chapter.char_count <= 0 {
                     None
                 } else {
                     Some(chapter.char_count as u16)
@@ -378,7 +376,7 @@ impl SfacgClient {
         match Url::parse(&url) {
             Ok(url) => Some(url),
             Err(error) => {
-                warn!("Image URL parse failed: {line}, error: {error}");
+                warn!("Image URL parse failed: {error}, content: {line}");
                 None
             }
         }

@@ -30,11 +30,11 @@ impl Status {
         self.http_code == StatusCode::UNAUTHORIZED && self.error_code == 502
     }
 
-    pub(crate) fn check(&self) -> Result<(), Error> {
+    pub(crate) fn check(self) -> Result<(), Error> {
         if !self.ok() {
             return Err(Error::Http {
                 code: StatusCode::from_u16(self.http_code)?,
-                msg: self.msg.clone().unwrap(),
+                msg: self.msg.unwrap(),
             })?;
         }
 

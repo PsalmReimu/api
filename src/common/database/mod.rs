@@ -13,7 +13,7 @@ use tokio::{
 use tracing::info;
 use url::Url;
 
-use crate::{ChapterInfo, Error, Timing};
+use crate::{ChapterInfo, Error};
 use entity::{Image, Text};
 use migration::{Migrator, MigratorTrait};
 
@@ -39,8 +39,6 @@ pub(crate) enum FindImageResult {
 
 impl NovelDB {
     pub(crate) async fn new(app_name: &str) -> Result<Self, Error> {
-        let mut timing = Timing::new();
-
         let mut db_path = crate::data_dir_path(app_name)?;
         fs::create_dir_all(&db_path).await?;
 
@@ -58,8 +56,6 @@ impl NovelDB {
         let db_url = format!("sqlite:{}?mode=rwc", db_path.display());
         let db = Database::connect(db_url).await?;
         Migrator::up(&db, None).await?;
-
-        info!("Database creation takes `{}`", timing.elapsed()?);
 
         Ok(Self { db })
     }

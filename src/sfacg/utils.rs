@@ -34,6 +34,7 @@ impl SfacgClient {
         })
     }
 
+    #[inline]
     pub(crate) async fn client(&self) -> Result<&HTTPClient, Error> {
         self.client
             .get_or_try_init(|| async {
@@ -54,6 +55,7 @@ impl SfacgClient {
             .await
     }
 
+    #[inline]
     pub(crate) async fn client_rss(&self) -> Result<&HTTPClient, Error> {
         self.client_rss
             .get_or_try_init(|| async {
@@ -70,34 +72,35 @@ impl SfacgClient {
             .await
     }
 
+    #[inline]
     pub(crate) async fn db(&self) -> Result<&NovelDB, Error> {
         self.db
             .get_or_try_init(|| async { NovelDB::new(SfacgClient::APP_NAME).await })
             .await
     }
 
+    #[inline]
     pub(crate) async fn get<T>(&self, url: T) -> Result<Response, Error>
     where
         T: AsRef<str>,
     {
-        let response = self
+        Ok(self
             .client()
             .await?
             .get(SfacgClient::HOST.to_string() + url.as_ref())
             .basic_auth(SfacgClient::USERNAME, Some(SfacgClient::PASSWORD))
             .header("sfsecurity", self.sf_security()?)
             .send()
-            .await?;
-
-        Ok(response)
+            .await?)
     }
 
+    #[inline]
     pub(crate) async fn get_query<T, E>(&self, url: T, query: &E) -> Result<Response, Error>
     where
         T: AsRef<str>,
         E: Serialize,
     {
-        let response = self
+        Ok(self
             .client()
             .await?
             .get(SfacgClient::HOST.to_string() + url.as_ref())
@@ -105,23 +108,21 @@ impl SfacgClient {
             .basic_auth(SfacgClient::USERNAME, Some(SfacgClient::PASSWORD))
             .header("sfsecurity", self.sf_security()?)
             .send()
-            .await?;
-
-        Ok(response)
+            .await?)
     }
 
+    #[inline]
     pub(crate) async fn get_rss(&self, url: &Url) -> Result<Response, Error> {
-        let response = self.client_rss().await?.get(url.clone()).send().await?;
-
-        Ok(response)
+        Ok(self.client_rss().await?.get(url.clone()).send().await?)
     }
 
+    #[inline]
     pub(crate) async fn post<T, E>(&self, url: T, json: &E) -> Result<Response, Error>
     where
         T: AsRef<str>,
         E: Serialize,
     {
-        let response = self
+        Ok(self
             .client()
             .await?
             .post(SfacgClient::HOST.to_string() + url.as_ref())
@@ -129,11 +130,10 @@ impl SfacgClient {
             .header("sfsecurity", self.sf_security()?)
             .json(json)
             .send()
-            .await?;
-
-        Ok(response)
+            .await?)
     }
 
+    #[inline]
     fn sf_security(&self) -> Result<String, Error> {
         let uuid = Uuid::new_v4();
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
