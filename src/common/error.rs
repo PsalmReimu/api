@@ -24,7 +24,7 @@ pub enum Error {
     #[error(transparent)]
     Semver(#[from] semver::Error),
     #[error(transparent)]
-    Confy(#[from] confy::ConfyError),
+    Toml(#[from] toml::de::Error),
     #[error(transparent)]
     Simdutf8(#[from] simdutf8::basic::Utf8Error),
     #[error(transparent)]

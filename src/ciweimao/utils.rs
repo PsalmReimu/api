@@ -7,16 +7,16 @@ use parking_lot::RwLock;
 use reqwest::Response;
 use semver::{Version, VersionReq};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use tokio::sync::OnceCell;
+use tokio::{fs, sync::OnceCell};
 use tracing::{info, warn};
 use url::Url;
 
 use crate::{CiweimaoClient, Error, HTTPClient, NovelDB};
 
 #[must_use]
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 struct Config {
-    version: String,
+    version: Version,
     account: String,
     login_token: String,
 }
@@ -45,7 +45,7 @@ impl CiweimaoClient {
 
     /// Create a ciweimao client
     pub async fn new() -> Result<Self, Error> {
-        let (account, login_token) = CiweimaoClient::load_config_file()?;
+        let (account, login_token) = CiweimaoClient::load_config_file().await?;
 
         Ok(Self {
             proxy: None,
@@ -59,7 +59,7 @@ impl CiweimaoClient {
         })
     }
 
-    fn load_config_file() -> Result<(Option<String>, Option<String>), Error> {
+    async fn load_config_file() -> Result<(Option<String>, Option<String>), Error> {
         let mut config_file_path = crate::config_dir_path(CiweimaoClient::APP_NAME)?;
         config_file_path.push(CiweimaoClient::CONFIG_FILE_NAME);
 
@@ -69,21 +69,11 @@ impl CiweimaoClient {
                 config_file_path.display()
             );
 
-            let config: Config = confy::load_path(config_file_path)?;
+            let config = fs::read_to_string(config_file_path).await?;
+            let config: Config = toml::from_str(&config)?;
 
-            let mut ignore_config_file = false;
-            if config.version.is_empty() {
-                ignore_config_file = true;
-            } else {
-                let version = Version::parse(&config.version)?;
-                let req = VersionReq::parse(&format!("^{}", CiweimaoClient::CONFIG_VERSION))?;
-
-                if !req.matches(&version) {
-                    ignore_config_file = true;
-                }
-            }
-
-            if ignore_config_file {
+            let req = VersionReq::parse(&format!("^{}", CiweimaoClient::CONFIG_VERSION))?;
+            if !req.matches(&config.version) {
                 warn!("Ignoring the configuration file because the configuration file version is incompatible");
                 Ok((None, None))
             } else {
@@ -230,7 +220,7 @@ impl Drop for CiweimaoClient {
     fn drop(&mut self) {
         if self.has_token() {
             let config = Config {
-                version: CiweimaoClient::CONFIG_VERSION.to_string(),
+                version: Version::parse(CiweimaoClient::CONFIG_VERSION).unwrap(),
                 account: self.account(),
                 login_token: self.login_token(),
             };
@@ -239,7 +229,8 @@ impl Drop for CiweimaoClient {
                 .expect("Failed to obtain configuration file path");
             config_file_path.push(CiweimaoClient::CONFIG_FILE_NAME);
 
-            confy::store_path(&config_file_path, config).expect("Configuration file save failed");
+            std::fs::write(&config_file_path, toml::to_string(&config).unwrap())
+                .expect("Configuration file save failed");
 
             info!("Save the config file at: `{}`", config_file_path.display());
         } else {
