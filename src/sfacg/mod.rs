@@ -7,7 +7,6 @@ use std::{
 };
 
 use async_trait::async_trait;
-use http::StatusCode;
 use image::{io::Reader, DynamicImage};
 use tokio::sync::OnceCell;
 use tracing::warn;
@@ -88,11 +87,11 @@ impl Client for SfacgClient {
         }
         response.status.check()?;
 
-        let info = UserInfo {
+        let user_info = UserInfo {
             nickname: response.data.unwrap().nick_name.trim().to_string(),
         };
 
-        Ok(Some(info))
+        Ok(Some(user_info))
     }
 
     async fn novel_info(&self, id: u32) -> Result<Option<NovelInfo>, Error> {
@@ -149,7 +148,6 @@ impl Client for SfacgClient {
         response.status.check()?;
 
         let mut volumes = VolumeInfos::new();
-
         for volume in response.data.unwrap().volume_list {
             let mut volume_info = VolumeInfo {
                 title: volume.title.trim().to_string(),
@@ -219,7 +217,6 @@ impl Client for SfacgClient {
         }
 
         let mut content_infos = ContentInfos::new();
-
         for line in content
             .lines()
             .map(|line| line.trim())
@@ -242,23 +239,13 @@ impl Client for SfacgClient {
             FindImageResult::Ok(image) => Ok(image),
             FindImageResult::None => {
                 let response = self.get_rss(url).await?;
-
-                if response.status() != StatusCode::OK {
-                    return Err(Error::Http {
-                        code: response.status(),
-                        msg: "Image download failed".to_string(),
-                    });
-                }
-
                 let bytes = response.bytes().await?;
 
                 self.db().await?.insert_image(url, &bytes).await?;
 
-                let image = Reader::new(Cursor::new(bytes))
+                Ok(Reader::new(Cursor::new(bytes))
                     .with_guessed_format()?
-                    .decode()?;
-
-                Ok(image)
+                    .decode()?)
             }
         }
     }
@@ -284,7 +271,6 @@ impl Client for SfacgClient {
         response.status.check()?;
 
         let mut result = Vec::new();
-
         if response.data.is_some() {
             for novel_info in response.data.unwrap().novels {
                 result.push(novel_info.novel_id);
@@ -308,7 +294,6 @@ impl Client for SfacgClient {
         response.status.check()?;
 
         let mut result = Vec::new();
-
         if response.data.is_some() {
             for data in response.data.unwrap() {
                 if let FavoritesExpand::Novels(novels) = data.expand {

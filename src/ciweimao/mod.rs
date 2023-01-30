@@ -16,7 +16,6 @@ use boring::{
 };
 use chrono::NaiveDateTime;
 use hex_simd::AsciiCase;
-use http::StatusCode;
 use image::{io::Reader, DynamicImage};
 use once_cell::sync::Lazy;
 use parking_lot::RwLock;
@@ -74,10 +73,9 @@ impl Client for CiweimaoClient {
         T: AsRef<str> + Send + Sync,
         E: AsRef<str> + Send + Sync,
     {
-        let verify_type = self.verify_type(&username).await?;
         let (account, login_token);
 
-        match verify_type {
+        match self.verify_type(&username).await? {
             VerifyType::None => {
                 info!("No verification required");
                 (account, login_token) = self.no_verification_login(username, password).await?;
@@ -118,9 +116,8 @@ impl Client for CiweimaoClient {
         }
         check_response(response.code, response.tip)?;
 
-        let data = response.data.unwrap().reader_info;
         let user_info = UserInfo {
-            nickname: data.reader_name,
+            nickname: response.data.unwrap().reader_info.reader_name,
         };
 
         Ok(Some(user_info))
@@ -213,6 +210,7 @@ impl Client for CiweimaoClient {
             }
             other => {
                 let identifier = info.identifier.to_string();
+
                 let cmd = self.chapter_cmd(&identifier).await?;
                 let aes_key = sha::sha256(cmd.as_bytes());
 
@@ -246,7 +244,6 @@ impl Client for CiweimaoClient {
         }
 
         let mut content_infos = ContentInfos::new();
-
         for line in content
             .lines()
             .map(|line| line.trim())
@@ -265,31 +262,19 @@ impl Client for CiweimaoClient {
     }
 
     async fn image_info(&self, url: &Url) -> Result<DynamicImage, Error> {
-        let image = match self.db().await?.find_image(url).await? {
+        match self.db().await?.find_image(url).await? {
             FindImageResult::Ok(image) => Ok(image),
             FindImageResult::None => {
                 let response = self.get_rss(url).await?;
-
-                if response.status() != StatusCode::OK {
-                    return Err(Error::Http {
-                        code: response.status(),
-                        msg: "Image download failed".to_string(),
-                    });
-                }
-
                 let bytes = response.bytes().await?;
 
                 self.db().await?.insert_image(url, &bytes).await?;
 
-                let image = Reader::new(Cursor::new(bytes))
+                Ok(Reader::new(Cursor::new(bytes))
                     .with_guessed_format()?
-                    .decode()?;
-
-                Ok(image)
+                    .decode()?)
             }
-        };
-
-        image
+        }
     }
 
     async fn search_infos<T>(&self, text: T, page: u16, size: u16) -> Result<Vec<u32>, Error>

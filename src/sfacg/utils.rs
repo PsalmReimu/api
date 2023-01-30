@@ -113,7 +113,10 @@ impl SfacgClient {
 
     #[inline]
     pub(crate) async fn get_rss(&self, url: &Url) -> Result<Response, Error> {
-        Ok(self.client_rss().await?.get(url.clone()).send().await?)
+        let response = self.client_rss().await?.get(url.clone()).send().await?;
+        crate::check_status(response.status(), format!("HTTP request failed: `{url}`"))?;
+
+        Ok(response)
     }
 
     #[inline]

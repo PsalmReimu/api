@@ -22,6 +22,8 @@ struct Config {
 }
 
 impl CiweimaoClient {
+    const APP_NAME: &str = "ciweimao";
+
     pub(crate) const OK: &str = "100000";
     pub(crate) const LOGIN_EXPIRED: &str = "200100";
     pub(crate) const NOT_FOUND: &str = "320001";
@@ -31,7 +33,6 @@ impl CiweimaoClient {
 
     const HOST: &str = "https://app.hbooker.com";
 
-    const APP_NAME: &str = "ciweimao";
     const CONFIG_FILE_NAME: &str = "config.toml";
     const CONFIG_VERSION: &str = "0.1.0";
 
@@ -158,33 +159,47 @@ impl CiweimaoClient {
         T: AsRef<str>,
         E: Serialize,
     {
-        Ok(self
+        let response = self
             .client()
             .await?
             .get(CiweimaoClient::HOST.to_string() + url.as_ref())
             .query(query)
             .send()
-            .await?)
+            .await?;
+        crate::check_status(
+            response.status(),
+            format!("HTTP request failed: `{}`", url.as_ref()),
+        )?;
+
+        Ok(response)
     }
 
     #[inline]
     pub(crate) async fn get_rss(&self, url: &Url) -> Result<Response, Error> {
-        Ok(self.client_rss().await?.get(url.clone()).send().await?)
+        let response = self.client_rss().await?.get(url.clone()).send().await?;
+        crate::check_status(response.status(), format!("HTTP request failed: `{url}`"))?;
+
+        Ok(response)
     }
 
     #[inline]
-    pub(crate) async fn post<T, E>(&self, url: &str, form: &E) -> Result<T, Error>
+    pub(crate) async fn post<T, E, R>(&self, url: T, form: &E) -> Result<R, Error>
     where
-        T: DeserializeOwned,
+        T: AsRef<str>,
         E: Serialize,
+        R: DeserializeOwned,
     {
         let response = self
             .client()
             .await?
-            .post(CiweimaoClient::HOST.to_string() + url)
+            .post(CiweimaoClient::HOST.to_string() + url.as_ref())
             .form(form)
             .send()
             .await?;
+        crate::check_status(
+            response.status(),
+            format!("HTTP request failed: `{}`", url.as_ref()),
+        )?;
 
         let bytes = response.bytes().await?;
         let bytes =

@@ -6,6 +6,7 @@ use std::{
     time::Duration,
 };
 
+use http::StatusCode;
 use reqwest::{
     header::{HeaderMap, HeaderValue, ACCEPT, ACCEPT_LANGUAGE, CONNECTION},
     Certificate, Client, Proxy,
@@ -18,6 +19,21 @@ use url::Url;
 use crate::Error;
 
 const COOKIE_FILE_NAME: &str = "cookie.json";
+
+#[inline]
+pub(crate) fn check_status<T>(code: StatusCode, msg: T) -> Result<(), Error>
+where
+    T: AsRef<str>,
+{
+    if code != StatusCode::OK {
+        return Err(Error::Http {
+            code,
+            msg: msg.as_ref().to_string(),
+        });
+    }
+
+    Ok(())
+}
 
 #[must_use]
 pub(crate) struct HTTPClientBuilder {
