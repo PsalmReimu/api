@@ -42,6 +42,7 @@ pub(crate) struct HTTPClientBuilder {
     accept_language: HeaderValue,
     user_agent: String,
     cookie: bool,
+    allow_compress: bool,
     proxy: Option<Url>,
     no_proxy: bool,
     cert_path: Option<PathBuf>,
@@ -57,6 +58,7 @@ impl HTTPClientBuilder {
             accept_language: HeaderValue::from_static("zh-CN,zh;q=0.9"),
             user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36".to_string(),
             cookie: false,
+            allow_compress: true,
             proxy: None,
             no_proxy: false,
             cert_path: None,
@@ -90,6 +92,13 @@ impl HTTPClientBuilder {
     pub(crate) fn cookie(self, flag: bool) -> Self {
         Self {
             cookie: flag,
+            ..self
+        }
+    }
+
+    pub(crate) fn allow_compress(self, flag: bool) -> Self {
+        Self {
+            allow_compress: flag,
             ..self
         }
     }
@@ -135,6 +144,12 @@ impl HTTPClientBuilder {
         if self.cookie {
             client_builder =
                 client_builder.cookie_provider(Arc::clone(cookie_store.as_ref().unwrap()));
+        }
+
+        if !self.allow_compress {
+            client_builder = client_builder.no_gzip();
+            client_builder = client_builder.no_brotli();
+            client_builder = client_builder.no_deflate();
         }
 
         if let Some(proxy) = self.proxy {

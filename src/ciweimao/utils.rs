@@ -120,6 +120,7 @@ impl CiweimaoClient {
                     .accept("*/*")
                     .accept_language("zh-Hans-CN;q=1")
                     .user_agent(CiweimaoClient::USER_AGENT)
+                    .allow_compress(false)
                     .proxy(self.proxy.clone())
                     .no_proxy(self.no_proxy)
                     .cert(self.cert_path.clone())
