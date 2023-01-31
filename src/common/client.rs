@@ -146,6 +146,9 @@ pub trait Client {
     where
         T: AsRef<Path>;
 
+    /// Stop the client, save the data
+    fn shutdown(&self) -> Result<(), Error>;
+
     /// Add cookie
     async fn add_cookie(&self, cookie_str: &str, url: &Url) -> Result<(), Error>;
 

@@ -48,6 +48,10 @@ impl Client for SfacgClient {
         self.cert_path = Some(cert_path.as_ref().to_path_buf());
     }
 
+    fn shutdown(&self) -> Result<(), Error> {
+        self.client.get().unwrap().shutdown()
+    }
+
     async fn add_cookie(&self, cookie_str: &str, url: &Url) -> Result<(), Error> {
         Ok(self.client().await?.add_cookie(cookie_str, url)?)
     }

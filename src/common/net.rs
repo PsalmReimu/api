@@ -218,6 +218,22 @@ impl HTTPClient {
 
         Ok(())
     }
+
+    pub(crate) fn shutdown(&self) -> Result<(), Error> {
+        if let Some(ref cookie_store) = self.cookie_store {
+            let mut config_path = crate::config_dir_path(self.app_name)?;
+            config_path.push(COOKIE_FILE_NAME);
+
+            info!("Save the cookie file at: `{}`", config_path.display());
+            let file = std::fs::File::create(config_path)?;
+
+            let mut writer = BufWriter::new(file);
+            let store = cookie_store.lock().unwrap();
+            store.save_json(&mut writer)?;
+        }
+
+        Ok(())
+    }
 }
 
 impl Deref for HTTPClient {
@@ -230,19 +246,6 @@ impl Deref for HTTPClient {
 
 impl Drop for HTTPClient {
     fn drop(&mut self) {
-        if let Some(ref cookie_store) = self.cookie_store {
-            let mut config_path = crate::config_dir_path(self.app_name)
-                .expect("Failed to get the path to the project's config directory");
-            config_path.push(COOKIE_FILE_NAME);
-
-            info!("Save the cookie file at: `{}`", config_path.display());
-            let file = std::fs::File::create(config_path).expect("Failed to open cookie file");
-
-            let mut writer = BufWriter::new(file);
-            let store = cookie_store.lock().unwrap();
-            store
-                .save_json(&mut writer)
-                .expect("Failed to save cookie file");
-        }
+        self.shutdown().expect("Fail to save cookie");
     }
 }

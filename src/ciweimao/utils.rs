@@ -230,10 +230,8 @@ impl CiweimaoClient {
 
         Ok(result)
     }
-}
 
-impl Drop for CiweimaoClient {
-    fn drop(&mut self) {
+    pub(crate) fn shutdown(&self) -> Result<(), Error> {
         if self.has_token() {
             let config = Config {
                 version: Version::parse(CiweimaoClient::CONFIG_VERSION).unwrap(),
@@ -241,16 +239,22 @@ impl Drop for CiweimaoClient {
                 login_token: self.login_token(),
             };
 
-            let mut config_file_path = crate::config_dir_path(CiweimaoClient::APP_NAME)
-                .expect("Failed to obtain configuration file path");
+            let mut config_file_path = crate::config_dir_path(CiweimaoClient::APP_NAME)?;
             config_file_path.push(CiweimaoClient::CONFIG_FILE_NAME);
 
-            std::fs::write(&config_file_path, toml::to_string(&config).unwrap())
-                .expect("Configuration file save failed");
+            std::fs::write(&config_file_path, toml::to_string(&config).unwrap())?;
 
             info!("Save the config file at: `{}`", config_file_path.display());
         } else {
             info!("No data can be saved to the configuration file");
         }
+
+        Ok(())
+    }
+}
+
+impl Drop for CiweimaoClient {
+    fn drop(&mut self) {
+        self.shutdown().expect("Fail to save config file");
     }
 }
