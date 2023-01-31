@@ -92,6 +92,14 @@ pub struct ChapterInfo {
     pub update_time: Option<NaiveDateTime>,
 }
 
+impl ChapterInfo {
+    /// Is this chapter available for download
+    pub fn can_download(&self) -> bool {
+        !crate::is_some_and(self.accessible.as_ref(), |x| !x)
+            && !crate::is_some_and(self.is_valid.as_ref(), |x| !x)
+    }
+}
+
 /// Chapter identifier
 #[must_use]
 #[derive(Debug)]
