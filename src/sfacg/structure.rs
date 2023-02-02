@@ -97,6 +97,7 @@ pub(crate) struct NovelsData {
     pub novel_cover: Url,
     pub author_name: String,
     pub char_count: i32,
+    pub type_id: u16,
     pub is_finish: bool,
     pub add_time: NaiveDateTime,
     pub last_update_time: NaiveDateTime,
@@ -244,4 +245,34 @@ pub(crate) enum FavoritesExpand {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct FavoritesNovelInfo {
     pub novel_id: u32,
+}
+
+#[must_use]
+#[derive(Deserialize)]
+pub(crate) struct CategoryResponse {
+    pub status: Status,
+    pub data: Option<Vec<CategoryData>>,
+}
+
+#[must_use]
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct CategoryData {
+    pub type_id: u16,
+    pub type_name: String,
+}
+
+#[must_use]
+#[derive(Deserialize)]
+pub(crate) struct TagResponse {
+    pub status: Status,
+    pub data: Option<Vec<TagData>>,
+}
+
+#[must_use]
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct TagData {
+    pub sys_tag_id: u16,
+    pub tag_name: String,
 }

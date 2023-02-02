@@ -13,8 +13,9 @@ use tracing::warn;
 use url::Url;
 
 use crate::{
-    ChapterInfo, Client, ContentInfo, ContentInfos, Error, FindImageResult, FindTextResult,
-    HTTPClient, Identifier, NovelDB, NovelInfo, Tag, UserInfo, VolumeInfo, VolumeInfos,
+    Category, ChapterInfo, Client, ContentInfo, ContentInfos, Error, FindImageResult,
+    FindTextResult, HTTPClient, Identifier, NovelDB, NovelInfo, Tag, UserInfo, VolumeInfo,
+    VolumeInfos,
 };
 use structure::*;
 
@@ -124,6 +125,11 @@ impl Client for SfacgClient {
             Some(novel_data.char_count as u32)
         };
 
+        let category = Category {
+            id: Some(novel_data.type_id),
+            name: novel_data.expand.type_name.trim().to_string(),
+        };
+
         let novel_info = NovelInfo {
             id,
             name: novel_data.novel_name.trim().to_string(),
@@ -134,7 +140,7 @@ impl Client for SfacgClient {
             finished: Some(novel_data.is_finish),
             create_time: Some(novel_data.add_time),
             update_time: Some(novel_data.last_update_time),
-            genre: Some(novel_data.expand.type_name.trim().to_string()),
+            category: Some(category),
             tags: SfacgClient::parse_tags(novel_data.expand.sys_tags),
         };
 
@@ -306,6 +312,46 @@ impl Client for SfacgClient {
                     }
                 }
             }
+        }
+
+        Ok(result)
+    }
+
+    async fn category_info(&self) -> Result<Vec<Category>, Error> {
+        let response = self
+            .get("/noveltypes")
+            .await?
+            .json::<CategoryResponse>()
+            .await?;
+        response.status.check()?;
+
+        let mut result = Vec::new();
+
+        for tag_data in response.data.unwrap() {
+            result.push(Category {
+                id: Some(tag_data.type_id),
+                name: tag_data.type_name,
+            });
+        }
+
+        Ok(result)
+    }
+
+    async fn tag_infos(&self) -> Result<Vec<Tag>, Error> {
+        let response = self
+            .get("/novels/0/sysTags")
+            .await?
+            .json::<TagResponse>()
+            .await?;
+        response.status.check()?;
+
+        let mut result = Vec::new();
+
+        for tag_data in response.data.unwrap() {
+            result.push(Tag {
+                id: Some(tag_data.sys_tag_id),
+                name: tag_data.tag_name,
+            });
         }
 
         Ok(result)

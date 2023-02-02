@@ -26,8 +26,9 @@ use url::Url;
 use warp::{http::Response, Filter};
 
 use crate::{
-    ChapterInfo, Client, ContentInfo, ContentInfos, Error, FindImageResult, FindTextResult,
-    HTTPClient, Identifier, NovelDB, NovelInfo, Tag, UserInfo, VolumeInfo, VolumeInfos,
+    Category, ChapterInfo, Client, ContentInfo, ContentInfos, Error, FindImageResult,
+    FindTextResult, HTTPClient, Identifier, NovelDB, NovelInfo, Tag, UserInfo, VolumeInfo,
+    VolumeInfos,
 };
 use structure::*;
 
@@ -156,7 +157,7 @@ impl Client for CiweimaoClient {
             finished: CiweimaoClient::parse_bool(data.up_status),
             create_time: CiweimaoClient::parse_data_time(data.newtime),
             update_time: CiweimaoClient::parse_data_time(data.uptime),
-            genre: CiweimaoClient::parse_genre(data.category_index),
+            category: CiweimaoClient::parse_category(data.category_index),
             tags: CiweimaoClient::parse_tags(data.tag),
         };
 
@@ -334,6 +335,16 @@ impl Client for CiweimaoClient {
                 result.push(novel_info.book_info.book_id.parse::<u32>()?);
             }
         }
+
+        Ok(result)
+    }
+
+    async fn category_info(&self) -> Result<Vec<Category>, Error> {
+        todo!()
+    }
+
+    async fn tag_infos(&self) -> Result<Vec<Tag>, Error> {
+        let result = Vec::new();
 
         Ok(result)
     }
@@ -718,7 +729,7 @@ impl CiweimaoClient {
         }
     }
 
-    fn parse_genre<T>(str: T) -> Option<String>
+    fn parse_category<T>(str: T) -> Option<Category>
     where
         T: AsRef<str>,
     {
@@ -744,7 +755,10 @@ impl CiweimaoClient {
 
         match str.parse::<u8>() {
             Ok(index) => match CATEGORIES.get(&index) {
-                Some(str) => Some(str.to_string()),
+                Some(str) => Some(Category {
+                    id: Some(index as u16),
+                    name: str.to_string(),
+                }),
                 None => {
                     warn!("The category index does not exist: {str}");
                     None

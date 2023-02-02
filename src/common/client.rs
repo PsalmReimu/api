@@ -37,8 +37,8 @@ pub struct NovelInfo {
     pub create_time: Option<NaiveDateTime>,
     /// Novel last update time
     pub update_time: Option<NaiveDateTime>,
-    /// Novel genre
-    pub genre: Option<String>,
+    /// Novel category
+    pub category: Option<Category>,
     /// Novel tags
     pub tags: Option<Vec<Tag>>,
 }
@@ -47,6 +47,16 @@ impl PartialEq for NovelInfo {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
+}
+
+/// Novel category
+#[must_use]
+#[derive(Debug)]
+pub struct Category {
+    /// Category id
+    pub id: Option<u16>,
+    /// Category name
+    pub name: String,
 }
 
 /// Novel tag
@@ -180,4 +190,10 @@ pub trait Client {
 
     /// Get the favorite novel of the logged-in user and return the novel id
     async fn favorite_infos(&self) -> Result<Vec<u32>, Error>;
+
+    /// Get category
+    async fn category_info(&self) -> Result<Vec<Category>, Error>;
+
+    /// Get all tags
+    async fn tag_infos(&self) -> Result<Vec<Tag>, Error>;
 }
