@@ -28,7 +28,7 @@ async fn sfacg() -> Result<()> {
 
     let image_file_name = "sfacg-test.webp";
     let image_info = client
-        .image_info(&novel_info.unwrap().cover_url.unwrap())
+        .image(&novel_info.unwrap().cover_url.unwrap())
         .await?;
     image_info.save(image_file_name)?;
     fs::remove_file(image_file_name).await?;
@@ -36,10 +36,10 @@ async fn sfacg() -> Result<()> {
     let search_infos = client.search_infos("测试", 0, 12).await?;
     println!("{search_infos:#?}");
 
-    let category_infos = client.category_info().await?;
+    let category_infos = client.categories().await?;
     println!("{category_infos:#?}");
 
-    let tag_infos = client.tag_infos().await?;
+    let tag_infos = client.tags().await?;
     println!("{tag_infos:#?}");
 
     Ok(())

@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{ops::Range, path::Path};
 
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
@@ -142,6 +142,17 @@ pub enum ContentInfo {
     Image(Url),
 }
 
+#[derive(Default)]
+pub struct Options {
+    pub is_finished: Option<bool>,
+    pub is_vip: Option<bool>,
+    pub category: Option<Category>,
+    pub tags: Option<Vec<Tag>>,
+    pub exclude_tags: Option<Vec<Tag>>,
+    pub update_days: Option<u8>,
+    pub word_count: Option<Range<u32>>,
+}
+
 /// Traits that abstract client behavior
 #[async_trait]
 pub trait Client {
@@ -181,7 +192,7 @@ pub trait Client {
     async fn content_infos(&self, info: &ChapterInfo) -> Result<ContentInfos, Error>;
 
     /// Download image
-    async fn image_info(&self, url: &Url) -> Result<DynamicImage, Error>;
+    async fn image(&self, url: &Url) -> Result<DynamicImage, Error>;
 
     /// Search, return novel id
     async fn search_infos<T>(&self, text: T, page: u16, size: u16) -> Result<Vec<u32>, Error>
@@ -192,8 +203,10 @@ pub trait Client {
     async fn favorite_infos(&self) -> Result<Vec<u32>, Error>;
 
     /// Get category
-    async fn category_info(&self) -> Result<&Vec<Category>, Error>;
+    async fn categories(&self) -> Result<&Vec<Category>, Error>;
 
     /// Get all tags
-    async fn tag_infos(&self) -> Result<&Vec<Tag>, Error>;
+    async fn tags(&self) -> Result<&Vec<Tag>, Error>;
+
+    async fn novels(&self, option: &Options, page: u16, size: u16) -> Result<Vec<u32>, Error>;
 }

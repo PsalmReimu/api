@@ -14,7 +14,7 @@ use url::Url;
 
 use crate::{
     Category, ChapterInfo, Client, ContentInfo, ContentInfos, Error, FindImageResult,
-    FindTextResult, HTTPClient, Identifier, NovelDB, NovelInfo, Tag, UserInfo, VolumeInfo,
+    FindTextResult, HTTPClient, Identifier, NovelDB, NovelInfo, Options, Tag, UserInfo, VolumeInfo,
     VolumeInfos,
 };
 use structure::*;
@@ -105,12 +105,12 @@ impl Client for SfacgClient {
         let response = self
             .get_query(
                 format!("/novels/{id}"),
-                &NovelsRequest {
+                &NovelInfoRequest {
                     expand: Some("intro,typeName,sysTags"),
                 },
             )
             .await?
-            .json::<NovelsResponse>()
+            .json::<NovelInfoResponse>()
             .await?;
         if response.status.not_found() {
             return Ok(None);
@@ -244,7 +244,7 @@ impl Client for SfacgClient {
         Ok(content_infos)
     }
 
-    async fn image_info(&self, url: &Url) -> Result<DynamicImage, Error> {
+    async fn image(&self, url: &Url) -> Result<DynamicImage, Error> {
         match self.db().await?.find_image(url).await? {
             FindImageResult::Ok(image) => Ok(image),
             FindImageResult::None => {
@@ -317,7 +317,7 @@ impl Client for SfacgClient {
         Ok(result)
     }
 
-    async fn category_info(&self) -> Result<&Vec<Category>, Error> {
+    async fn categories(&self) -> Result<&Vec<Category>, Error> {
         static CATEGORIES: OnceCell<Vec<Category>> = OnceCell::const_new();
 
         CATEGORIES
@@ -343,7 +343,7 @@ impl Client for SfacgClient {
             .await
     }
 
-    async fn tag_infos(&self) -> Result<&Vec<Tag>, Error> {
+    async fn tags(&self) -> Result<&Vec<Tag>, Error> {
         static TAGS: OnceCell<Vec<Tag>> = OnceCell::const_new();
 
         TAGS.get_or_try_init(|| async {
@@ -367,10 +367,93 @@ impl Client for SfacgClient {
         })
         .await
     }
+
+    async fn novels(&self, option: &Options, page: u16, size: u16) -> Result<Vec<u32>, Error> {
+        let mut category_id = 0;
+        if option.category.is_some() {
+            category_id = option.category.as_ref().unwrap().id.unwrap();
+        }
+
+        let is_finish = if option.is_finished.is_some() {
+            if *option.is_finished.as_ref().unwrap() {
+                "is"
+            } else {
+                "not"
+            }
+        } else {
+            "both"
+        };
+
+        let is_free = if option.is_vip.is_some() {
+            if *option.is_vip.as_ref().unwrap() {
+                "not"
+            } else {
+                "is"
+            }
+        } else {
+            "both"
+        };
+
+        let sys_tag_ids = option.tags.as_ref().map(|tags| {
+            tags.iter()
+                .map(|tag| tag.id.unwrap().to_string())
+                .collect::<Vec<String>>()
+                .join(",")
+        });
+
+        let not_exclude_sys_tag_ids = option.exclude_tags.as_ref().map(|tags| {
+            tags.iter()
+                .map(|tag| tag.id.unwrap().to_string())
+                .collect::<Vec<String>>()
+                .join(",")
+        });
+
+        let char_count_begin = if option.word_count.is_some() {
+            option.word_count.as_ref().unwrap().start
+        } else {
+            0
+        };
+
+        let char_count_end = if option.word_count.is_some() {
+            option.word_count.as_ref().unwrap().end
+        } else {
+            0
+        };
+
+        let response = self
+            .get_query(
+                format!("/novels/{category_id}/sysTags/novels"),
+                &NovelsRequest {
+                    // TODO for test
+                    fields: "novelId,novelName",
+                    char_count_begin,
+                    char_count_end,
+                    is_finish,
+                    is_free,
+                    sys_tag_ids,
+                    not_exclude_sys_tag_ids,
+                    updatedays: option.update_days,
+                    page,
+                    size,
+                    sort: "viewtimes",
+                },
+            )
+            .await?
+            .json::<NovelsResponse>()
+            .await?;
+        response.status.check()?;
+
+        let mut result = Vec::new();
+        for novel_data in response.data.unwrap() {
+            result.push(novel_data.novel_id);
+        }
+
+        Ok(result)
+    }
 }
 
 impl SfacgClient {
-    fn parse_tags(sys_tags: Vec<NovelsSysTag>) -> Option<Vec<Tag>> {
+    fn parse_tags(sys_tags: Vec<NovelInfoSysTag>) -> Option<Vec<Tag>> {
         let mut result = vec![];
         for tag in sys_tags {
             result.push(Tag {

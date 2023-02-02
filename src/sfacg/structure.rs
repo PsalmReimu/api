@@ -78,21 +78,21 @@ pub(crate) struct UserData {
 
 #[must_use]
 #[derive(Serialize)]
-pub(crate) struct NovelsRequest {
+pub(crate) struct NovelInfoRequest {
     pub expand: Option<&'static str>,
 }
 
 #[must_use]
 #[derive(Deserialize)]
-pub(crate) struct NovelsResponse {
+pub(crate) struct NovelInfoResponse {
     pub status: Status,
-    pub data: Option<NovelsData>,
+    pub data: Option<NovelInfoData>,
 }
 
 #[must_use]
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct NovelsData {
+pub(crate) struct NovelInfoData {
     pub novel_name: String,
     pub novel_cover: Url,
     pub author_name: String,
@@ -101,22 +101,22 @@ pub(crate) struct NovelsData {
     pub is_finish: bool,
     pub add_time: NaiveDateTime,
     pub last_update_time: NaiveDateTime,
-    pub expand: NovelsExpand,
+    pub expand: NovelInfoExpand,
 }
 
 #[must_use]
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct NovelsExpand {
+pub(crate) struct NovelInfoExpand {
     pub type_name: String,
     pub intro: String,
-    pub sys_tags: Vec<NovelsSysTag>,
+    pub sys_tags: Vec<NovelInfoSysTag>,
 }
 
 #[must_use]
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct NovelsSysTag {
+pub(crate) struct NovelInfoSysTag {
     pub sys_tag_id: u16,
     pub tag_name: String,
 }
@@ -275,4 +275,39 @@ pub(crate) struct TagResponse {
 pub(crate) struct TagData {
     pub sys_tag_id: u16,
     pub tag_name: String,
+}
+
+#[must_use]
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct NovelsRequest {
+    pub fields: &'static str,
+    pub char_count_begin: u32,
+    pub char_count_end: u32,
+    #[serde(rename = "isfinish")]
+    pub is_finish: &'static str,
+    #[serde(rename = "isfree")]
+    pub is_free: &'static str,
+    #[serde(rename = "systagids")]
+    pub sys_tag_ids: Option<String>,
+    #[serde(rename = "notexcludesystagids")]
+    pub not_exclude_sys_tag_ids: Option<String>,
+    pub updatedays: Option<u8>,
+    pub page: u16,
+    pub size: u16,
+    pub sort: &'static str,
+}
+
+#[must_use]
+#[derive(Deserialize)]
+pub(crate) struct NovelsResponse {
+    pub status: Status,
+    pub data: Option<Vec<NovelsData>>,
+}
+
+#[must_use]
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct NovelsData {
+    pub novel_id: u32,
 }

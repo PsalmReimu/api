@@ -18,6 +18,7 @@ use hex_simd::AsciiCase;
 use image::{io::Reader, DynamicImage};
 use parking_lot::RwLock;
 use scraper::{Html, Selector};
+use serde_json::json;
 use tokio::sync::{mpsc, oneshot, OnceCell};
 use tracing::{info, warn};
 use url::Url;
@@ -25,7 +26,7 @@ use warp::{http::Response, Filter};
 
 use crate::{
     Category, ChapterInfo, Client, ContentInfo, ContentInfos, Error, FindImageResult,
-    FindTextResult, HTTPClient, Identifier, NovelDB, NovelInfo, Tag, UserInfo, VolumeInfo,
+    FindTextResult, HTTPClient, Identifier, NovelDB, NovelInfo, Options, Tag, UserInfo, VolumeInfo,
     VolumeInfos,
 };
 use structure::*;
@@ -264,7 +265,7 @@ impl Client for CiweimaoClient {
         Ok(content_infos)
     }
 
-    async fn image_info(&self, url: &Url) -> Result<DynamicImage, Error> {
+    async fn image(&self, url: &Url) -> Result<DynamicImage, Error> {
         match self.db().await?.find_image(url).await? {
             FindImageResult::Ok(image) => Ok(image),
             FindImageResult::None => {
@@ -337,7 +338,7 @@ impl Client for CiweimaoClient {
         Ok(result)
     }
 
-    async fn category_info(&self) -> Result<&Vec<Category>, Error> {
+    async fn categories(&self) -> Result<&Vec<Category>, Error> {
         static CATEGORIES: OnceCell<Vec<Category>> = OnceCell::const_new();
 
         CATEGORIES
@@ -370,7 +371,7 @@ impl Client for CiweimaoClient {
             .await
     }
 
-    async fn tag_infos(&self) -> Result<&Vec<Tag>, Error> {
+    async fn tags(&self) -> Result<&Vec<Tag>, Error> {
         static TAGS: OnceCell<Vec<Tag>> = OnceCell::const_new();
 
         TAGS.get_or_try_init(|| async {
@@ -398,6 +399,93 @@ impl Client for CiweimaoClient {
             Ok(result)
         })
         .await
+    }
+
+    async fn novels(&self, option: &Options, page: u16, size: u16) -> Result<Vec<u32>, Error> {
+        let mut category_id = 0;
+        if option.category.is_some() {
+            category_id = option.category.as_ref().unwrap().id.unwrap();
+        }
+
+        let build_obj = |tag_name| {
+            json!({
+                "tag":tag_name,"filter":"1"
+            })
+        };
+        let mut tag_vec = Vec::new();
+        if option.tags.is_some() {
+            for tag in option.tags.as_ref().unwrap() {
+                tag_vec.push(build_obj(&tag.name));
+            }
+        }
+
+        let is_paid = option.is_vip.map(|is_vip| if is_vip { 1 } else { 0 });
+
+        let up_status = option
+            .is_finished
+            .map(|is_finished| if is_finished { 1 } else { 0 });
+
+        let mut filter_uptime = None;
+        let mut filter_word = None;
+
+        if option.word_count.is_some() {
+            let word_count = option.word_count.as_ref().unwrap();
+            if word_count.end <= 30_0000 {
+                filter_word = Some(1);
+            } else if word_count.start >= 30_0000 && word_count.end <= 50_0000 {
+                filter_word = Some(2);
+            } else if word_count.start >= 50_0000 && word_count.end <= 100_0000 {
+                filter_word = Some(3);
+            } else if word_count.start >= 100_0000 && word_count.end <= 200_0000 {
+                filter_word = Some(4);
+            } else if word_count.start >= 200_0000 {
+                filter_word = Some(5);
+            }
+        }
+
+        if option.update_days.is_some() {
+            let update_days = *option.update_days.as_ref().unwrap();
+
+            if update_days <= 3 {
+                filter_uptime = Some(1)
+            } else if update_days <= 7 {
+                filter_uptime = Some(2)
+            } else if update_days <= 15 {
+                filter_uptime = Some(3)
+            } else if update_days <= 30 {
+                filter_uptime = Some(4)
+            }
+        }
+
+        let response: NovelsResponse = self
+            .post(
+                "/bookcity/get_filter_search_book_list",
+                &NovelsRequest {
+                    app_version: CiweimaoClient::APP_VERSION,
+                    device_token: CiweimaoClient::DEVICE_TOKEN,
+                    account: self.account(),
+                    login_token: self.login_token(),
+                    count: size,
+                    page,
+                    category_index: category_id,
+                    order: "week_click",
+                    tags: json!(tag_vec).to_string(),
+                    is_paid,
+                    up_status,
+                    filter_uptime,
+                    filter_word,
+                },
+            )
+            .await?;
+        check_response(response.code, response.tip)?;
+
+        let mut result = Vec::new();
+        for novel_info in response.data.unwrap().book_list {
+            println!("{}", novel_info.book_name);
+            result.push(novel_info.book_id.parse::<u32>()?);
+        }
+
+        Ok(result)
     }
 }
 
@@ -789,7 +877,7 @@ impl CiweimaoClient {
             return Ok(None);
         }
 
-        let categories = self.category_info().await?;
+        let categories = self.categories().await?;
 
         match str.parse::<u16>() {
             Ok(index) => match categories.iter().find(|item| item.id == Some(index)) {
