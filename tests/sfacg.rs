@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use novel_api::{Client, SfacgClient};
+use novel_api::{Client, Options, SfacgClient};
 use tokio::fs;
 
 #[tokio::test]
@@ -41,6 +41,10 @@ async fn sfacg() -> Result<()> {
 
     let tag_infos = client.tags().await?;
     println!("{tag_infos:#?}");
+
+    let options = Options::default();
+    let novels = client.novels(&options, 0, 12).await?;
+    println!("{novels:#?}");
 
     Ok(())
 }
