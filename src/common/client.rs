@@ -192,8 +192,8 @@ pub trait Client {
     async fn favorite_infos(&self) -> Result<Vec<u32>, Error>;
 
     /// Get category
-    async fn category_info(&self) -> Result<Vec<Category>, Error>;
+    async fn category_info(&self) -> Result<&Vec<Category>, Error>;
 
     /// Get all tags
-    async fn tag_infos(&self) -> Result<Vec<Tag>, Error>;
+    async fn tag_infos(&self) -> Result<&Vec<Tag>, Error>;
 }

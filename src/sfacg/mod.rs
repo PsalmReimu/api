@@ -317,44 +317,55 @@ impl Client for SfacgClient {
         Ok(result)
     }
 
-    async fn category_info(&self) -> Result<Vec<Category>, Error> {
-        let response = self
-            .get("/noveltypes")
-            .await?
-            .json::<CategoryResponse>()
-            .await?;
-        response.status.check()?;
+    async fn category_info(&self) -> Result<&Vec<Category>, Error> {
+        static CATEGORIES: OnceCell<Vec<Category>> = OnceCell::const_new();
 
-        let mut result = Vec::new();
+        CATEGORIES
+            .get_or_try_init(|| async {
+                let response = self
+                    .get("/noveltypes")
+                    .await?
+                    .json::<CategoryResponse>()
+                    .await?;
+                response.status.check()?;
 
-        for tag_data in response.data.unwrap() {
-            result.push(Category {
-                id: Some(tag_data.type_id),
-                name: tag_data.type_name,
-            });
-        }
+                let mut result = Vec::new();
 
-        Ok(result)
+                for tag_data in response.data.unwrap() {
+                    result.push(Category {
+                        id: Some(tag_data.type_id),
+                        name: tag_data.type_name,
+                    });
+                }
+
+                Ok(result)
+            })
+            .await
     }
 
-    async fn tag_infos(&self) -> Result<Vec<Tag>, Error> {
-        let response = self
-            .get("/novels/0/sysTags")
-            .await?
-            .json::<TagResponse>()
-            .await?;
-        response.status.check()?;
+    async fn tag_infos(&self) -> Result<&Vec<Tag>, Error> {
+        static TAGS: OnceCell<Vec<Tag>> = OnceCell::const_new();
 
-        let mut result = Vec::new();
+        TAGS.get_or_try_init(|| async {
+            let response = self
+                .get("/novels/0/sysTags")
+                .await?
+                .json::<TagResponse>()
+                .await?;
+            response.status.check()?;
 
-        for tag_data in response.data.unwrap() {
-            result.push(Tag {
-                id: Some(tag_data.sys_tag_id),
-                name: tag_data.tag_name,
-            });
-        }
+            let mut result = Vec::new();
 
-        Ok(result)
+            for tag_data in response.data.unwrap() {
+                result.push(Tag {
+                    id: Some(tag_data.sys_tag_id),
+                    name: tag_data.tag_name,
+                });
+            }
+
+            Ok(result)
+        })
+        .await
     }
 }
 

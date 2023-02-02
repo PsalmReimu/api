@@ -206,7 +206,8 @@ impl CiweimaoClient {
         let bytes =
             CiweimaoClient::aes_256_cbc_base64_decrypt(CiweimaoClient::get_default_key(), &bytes)?;
 
-        Ok(serde_json::from_str(simdutf8::basic::from_utf8(&bytes)?)?)
+        let str = simdutf8::basic::from_utf8(&bytes)?;
+        Ok(serde_json::from_str(str)?)
     }
 
     #[must_use]

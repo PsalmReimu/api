@@ -8,7 +8,6 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use ahash::AHashMap;
 use async_trait::async_trait;
 use boring::{
     hash::{self, MessageDigest},
@@ -17,7 +16,6 @@ use boring::{
 use chrono::NaiveDateTime;
 use hex_simd::AsciiCase;
 use image::{io::Reader, DynamicImage};
-use once_cell::sync::Lazy;
 use parking_lot::RwLock;
 use scraper::{Html, Selector};
 use tokio::sync::{mpsc, oneshot, OnceCell};
@@ -157,7 +155,7 @@ impl Client for CiweimaoClient {
             finished: CiweimaoClient::parse_bool(data.up_status),
             create_time: CiweimaoClient::parse_data_time(data.newtime),
             update_time: CiweimaoClient::parse_data_time(data.uptime),
-            category: CiweimaoClient::parse_category(data.category_index),
+            category: self.parse_category(data.category_index).await?,
             tags: CiweimaoClient::parse_tags(data.tag),
         };
 
@@ -339,14 +337,67 @@ impl Client for CiweimaoClient {
         Ok(result)
     }
 
-    async fn category_info(&self) -> Result<Vec<Category>, Error> {
-        todo!()
+    async fn category_info(&self) -> Result<&Vec<Category>, Error> {
+        static CATEGORIES: OnceCell<Vec<Category>> = OnceCell::const_new();
+
+        CATEGORIES
+            .get_or_try_init(|| async {
+                let response: CategoryResponse = self
+                    .post(
+                        "/meta/get_meta_data",
+                        &CategoryRequest {
+                            app_version: CiweimaoClient::APP_VERSION,
+                            device_token: CiweimaoClient::DEVICE_TOKEN,
+                            account: self.account(),
+                            login_token: self.login_token(),
+                        },
+                    )
+                    .await?;
+                check_response(response.code, response.tip)?;
+
+                let mut result = Vec::new();
+                for category in response.data.unwrap().category_list {
+                    for category_detail in category.category_detail {
+                        result.push(Category {
+                            id: CiweimaoClient::parse_number(category_detail.category_index),
+                            name: category_detail.category_name,
+                        });
+                    }
+                }
+
+                Ok(result)
+            })
+            .await
     }
 
-    async fn tag_infos(&self) -> Result<Vec<Tag>, Error> {
-        let result = Vec::new();
+    async fn tag_infos(&self) -> Result<&Vec<Tag>, Error> {
+        static TAGS: OnceCell<Vec<Tag>> = OnceCell::const_new();
 
-        Ok(result)
+        TAGS.get_or_try_init(|| async {
+            let response: TagResponse = self
+                .post(
+                    "/book/get_official_tag_list",
+                    &TagRequest {
+                        app_version: CiweimaoClient::APP_VERSION,
+                        device_token: CiweimaoClient::DEVICE_TOKEN,
+                        account: self.account(),
+                        login_token: self.login_token(),
+                    },
+                )
+                .await?;
+            check_response(response.code, response.tip)?;
+
+            let mut result = Vec::new();
+            for tag in response.data.unwrap().official_tag_list {
+                result.push(Tag {
+                    id: None,
+                    name: tag.tag_name,
+                });
+            }
+
+            Ok(result)
+        })
+        .await
     }
 }
 
@@ -729,44 +780,31 @@ impl CiweimaoClient {
         }
     }
 
-    fn parse_category<T>(str: T) -> Option<Category>
+    async fn parse_category<T>(&self, str: T) -> Result<Option<Category>, Error>
     where
         T: AsRef<str>,
     {
         let str = str.as_ref();
         if str.is_empty() {
-            return None;
+            return Ok(None);
         }
 
-        static CATEGORIES: Lazy<AHashMap<u8, &str>> = Lazy::new(|| {
-            AHashMap::from([
-                (0, "全部分类"),
-                (1, "灵异未知"),
-                (3, "游戏竞技"),
-                (5, "仙侠武侠"),
-                (6, "科幻无限"),
-                (8, "玄幻奇幻"),
-                (11, "女频"),
-                (24, "免费同人"),
-                (27, "都市青春"),
-                (30, "历史军事"),
-            ])
-        });
+        let categories = self.category_info().await?;
 
-        match str.parse::<u8>() {
-            Ok(index) => match CATEGORIES.get(&index) {
-                Some(str) => Some(Category {
-                    id: Some(index as u16),
-                    name: str.to_string(),
-                }),
+        match str.parse::<u16>() {
+            Ok(index) => match categories.iter().find(|item| item.id == Some(index)) {
+                Some(category) => Ok(Some(Category {
+                    id: category.id,
+                    name: category.name.clone(),
+                })),
                 None => {
                     warn!("The category index does not exist: {str}");
-                    None
+                    Ok(None)
                 }
             },
             Err(error) => {
                 warn!("`category_index` parse failed: {error}");
-                None
+                Ok(None)
             }
         }
     }
