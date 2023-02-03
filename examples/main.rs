@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use novel_api::{Client, Options, SfacgClient};
+use novel_api::{Client, Options, SfacgClient, WordCountRange};
 use tokio::fs;
 
 #[tokio::main]
@@ -36,7 +36,11 @@ async fn main() -> Result<()> {
     let tag_infos = client.tags().await?;
     println!("{tag_infos:#?}");
 
-    let options = Options::default();
+    let options = Options {
+        tags: Some(vec![&tag_infos[0]]),
+        word_count: Some(WordCountRange::RangeFrom(90_0000..)),
+        ..Default::default()
+    };
     let novels = client.novels(&options, 0, 12).await?;
     println!("{novels:#?}");
 

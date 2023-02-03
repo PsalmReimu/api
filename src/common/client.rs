@@ -1,4 +1,7 @@
-use std::{ops::Range, path::Path};
+use std::{
+    ops::{Range, RangeFrom, RangeTo},
+    path::Path,
+};
 
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
@@ -143,14 +146,21 @@ pub enum ContentInfo {
 }
 
 #[derive(Default)]
-pub struct Options {
+pub struct Options<'a, 'b, 'c> {
     pub is_finished: Option<bool>,
     pub is_vip: Option<bool>,
-    pub category: Option<Category>,
-    pub tags: Option<Vec<Tag>>,
-    pub exclude_tags: Option<Vec<Tag>>,
+    pub category: Option<&'a Category>,
+    pub tags: Option<Vec<&'b Tag>>,
+    pub exclude_tags: Option<Vec<&'c Tag>>,
     pub update_days: Option<u8>,
-    pub word_count: Option<Range<u32>>,
+    pub word_count: Option<WordCountRange>,
+}
+
+///
+pub enum WordCountRange {
+    Range(Range<u32>),
+    RangeFrom(RangeFrom<u32>),
+    RangeTo(RangeTo<u32>),
 }
 
 /// Traits that abstract client behavior

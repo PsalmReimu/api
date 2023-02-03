@@ -15,7 +15,7 @@ use url::Url;
 use crate::{
     Category, ChapterInfo, Client, ContentInfo, ContentInfos, Error, FindImageResult,
     FindTextResult, HTTPClient, Identifier, NovelDB, NovelInfo, Options, Tag, UserInfo, VolumeInfo,
-    VolumeInfos,
+    VolumeInfos, WordCountRange,
 };
 use structure::*;
 
@@ -408,17 +408,19 @@ impl Client for SfacgClient {
                 .join(",")
         });
 
-        let char_count_begin = if option.word_count.is_some() {
-            option.word_count.as_ref().unwrap().start
-        } else {
-            0
-        };
+        let mut char_count_begin = 0;
+        let mut char_count_end = 0;
 
-        let char_count_end = if option.word_count.is_some() {
-            option.word_count.as_ref().unwrap().end
-        } else {
-            0
-        };
+        if option.word_count.is_some() {
+            match option.word_count.as_ref().unwrap() {
+                WordCountRange::Range(range) => {
+                    char_count_begin = range.start;
+                    char_count_end = range.end;
+                }
+                WordCountRange::RangeFrom(range_from) => char_count_begin = range_from.start,
+                WordCountRange::RangeTo(range_to) => char_count_end = range_to.end,
+            }
+        }
 
         let response = self
             .get_query(

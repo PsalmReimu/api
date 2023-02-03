@@ -27,7 +27,7 @@ use warp::{http::Response, Filter};
 use crate::{
     Category, ChapterInfo, Client, ContentInfo, ContentInfos, Error, FindImageResult,
     FindTextResult, HTTPClient, Identifier, NovelDB, NovelInfo, Options, Tag, UserInfo, VolumeInfo,
-    VolumeInfos,
+    VolumeInfos, WordCountRange,
 };
 use structure::*;
 
@@ -429,17 +429,32 @@ impl Client for CiweimaoClient {
         let mut filter_word = None;
 
         if option.word_count.is_some() {
-            let word_count = option.word_count.as_ref().unwrap();
-            if word_count.end <= 30_0000 {
-                filter_word = Some(1);
-            } else if word_count.start >= 30_0000 && word_count.end <= 50_0000 {
-                filter_word = Some(2);
-            } else if word_count.start >= 50_0000 && word_count.end <= 100_0000 {
-                filter_word = Some(3);
-            } else if word_count.start >= 100_0000 && word_count.end <= 200_0000 {
-                filter_word = Some(4);
-            } else if word_count.start >= 200_0000 {
-                filter_word = Some(5);
+            match option.word_count.as_ref().unwrap() {
+                WordCountRange::Range(range) => {
+                    if range.start >= 30_0000 && range.end <= 50_0000 {
+                        filter_word = Some(2);
+                    } else if range.start >= 50_0000 && range.end <= 100_0000 {
+                        filter_word = Some(3);
+                    } else if range.start >= 100_0000 && range.end <= 200_0000 {
+                        filter_word = Some(4);
+                    } else {
+                        warn!("not support");
+                    }
+                }
+                WordCountRange::RangeFrom(range_from) => {
+                    if range_from.start >= 200_0000 {
+                        filter_word = Some(5);
+                    } else {
+                        warn!("not support");
+                    }
+                }
+                WordCountRange::RangeTo(range_to) => {
+                    if range_to.end <= 30_0000 {
+                        filter_word = Some(1);
+                    } else {
+                        warn!("not support");
+                    }
+                }
             }
         }
 
