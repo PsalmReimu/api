@@ -54,7 +54,7 @@ impl PartialEq for NovelInfo {
 
 /// Novel category
 #[must_use]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Category {
     /// Category id
     pub id: Option<u16>,
@@ -64,7 +64,7 @@ pub struct Category {
 
 /// Novel tag
 #[must_use]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Tag {
     /// Tag id
     pub id: Option<u16>,
@@ -146,12 +146,12 @@ pub enum ContentInfo {
 }
 
 #[derive(Default)]
-pub struct Options<'a, 'b, 'c> {
+pub struct Options {
     pub is_finished: Option<bool>,
     pub is_vip: Option<bool>,
-    pub category: Option<&'a Category>,
-    pub tags: Option<Vec<&'b Tag>>,
-    pub exclude_tags: Option<Vec<&'c Tag>>,
+    pub category: Option<Category>,
+    pub tags: Option<Vec<Tag>>,
+    pub exclude_tags: Option<Vec<Tag>>,
     pub update_days: Option<u8>,
     pub word_count: Option<WordCountRange>,
 }

@@ -37,7 +37,7 @@ async fn main() -> Result<()> {
     println!("{tag_infos:#?}");
 
     let options = Options {
-        tags: Some(vec![&tag_infos[0]]),
+        tags: Some(vec![tag_infos[0].clone()]),
         word_count: Some(WordCountRange::RangeFrom(90_0000..)),
         ..Default::default()
     };
