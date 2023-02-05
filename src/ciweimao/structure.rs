@@ -492,7 +492,5 @@ pub(crate) struct NovelsData {
 #[must_use]
 #[derive(Deserialize)]
 pub(crate) struct NovelsInfo {
-    // TODO test
-    pub book_name: String,
     pub book_id: String,
 }

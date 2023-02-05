@@ -426,8 +426,7 @@ impl Client for SfacgClient {
             .get_query(
                 format!("/novels/{category_id}/sysTags/novels"),
                 &NovelsRequest {
-                    // TODO for test
-                    fields: "novelId,novelName",
+                    fields: "novelId",
                     char_count_begin,
                     char_count_end,
                     is_finish,

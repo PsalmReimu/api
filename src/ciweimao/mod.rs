@@ -496,7 +496,6 @@ impl Client for CiweimaoClient {
 
         let mut result = Vec::new();
         for novel_info in response.data.unwrap().book_list {
-            println!("{}", novel_info.book_name);
             result.push(novel_info.book_id.parse::<u32>()?);
         }
 
