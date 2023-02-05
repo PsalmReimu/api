@@ -157,7 +157,7 @@ impl Client for CiweimaoClient {
             create_time: CiweimaoClient::parse_data_time(data.newtime),
             update_time: CiweimaoClient::parse_data_time(data.uptime),
             category: self.parse_category(data.category_index).await?,
-            tags: CiweimaoClient::parse_tags(data.tag),
+            tags: self.parse_tags(data.tag).await?,
         };
 
         Ok(Some(novel_info))
@@ -858,27 +858,30 @@ impl CiweimaoClient {
         }
     }
 
-    fn parse_tags<T>(str: T) -> Option<Vec<Tag>>
+    async fn parse_tags<T>(&self, str: T) -> Result<Option<Vec<Tag>>, Error>
     where
         T: AsRef<str>,
     {
         let str = str.as_ref();
         if str.is_empty() {
-            return None;
+            return Ok(None);
         }
 
-        let mut tags: Vec<Tag> = vec![];
+        let tags = self.tags().await?;
+
+        let mut result: Vec<Tag> = vec![];
         for tag in str.split(',') {
-            tags.push(Tag {
-                id: None,
-                name: tag.trim().to_string(),
-            });
+            let name = tag.trim().to_string();
+
+            if tags.iter().any(|item| item.name == name) {
+                result.push(Tag { id: None, name });
+            }
         }
 
         if tags.is_empty() {
-            None
+            Ok(None)
         } else {
-            Some(tags)
+            Ok(Some(result))
         }
     }
 
