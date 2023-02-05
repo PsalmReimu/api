@@ -363,6 +363,11 @@ impl Client for SfacgClient {
                 });
             }
 
+            result.push(Tag {
+                id: Some(74),
+                name: "百合".to_string(),
+            });
+
             Ok(result)
         })
         .await
