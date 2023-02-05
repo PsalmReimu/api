@@ -62,6 +62,12 @@ pub struct Category {
     pub name: String,
 }
 
+impl ToString for Category {
+    fn to_string(&self) -> String {
+        self.name.to_string()
+    }
+}
+
 /// Novel tag
 #[must_use]
 #[derive(Debug, Clone)]
@@ -70,6 +76,12 @@ pub struct Tag {
     pub id: Option<u16>,
     /// Tag name
     pub name: String,
+}
+
+impl ToString for Tag {
+    fn to_string(&self) -> String {
+        self.name.to_string()
+    }
 }
 
 /// Volume information
