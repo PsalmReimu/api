@@ -404,18 +404,29 @@ impl Client for CiweimaoClient {
     async fn novels(&self, option: &Options, page: u16, size: u16) -> Result<Vec<u32>, Error> {
         let mut category_id = 0;
         if option.category.is_some() {
-            category_id = option.category.as_ref().unwrap().id.unwrap();
+            let category = option.category.as_ref().unwrap();
+
+            if let Some(id) = category.id {
+                category_id = id;
+            } else {
+                warn!(
+                    "Invalid category, its category_id does not exist: `{}`",
+                    category.name
+                );
+            }
         }
 
-        let build_obj = |tag_name| {
+        let json_obj = |tag_name| {
             json!({
-                "tag":tag_name,"filter":"1"
+                "tag":tag_name,
+                "filter":"1"
             })
         };
-        let mut tag_vec = Vec::new();
+
+        let mut tags = Vec::new();
         if option.tags.is_some() {
             for tag in option.tags.as_ref().unwrap() {
-                tag_vec.push(build_obj(&tag.name));
+                tags.push(json_obj(&tag.name));
             }
         }
 
@@ -425,9 +436,7 @@ impl Client for CiweimaoClient {
             .is_finished
             .map(|is_finished| if is_finished { 1 } else { 0 });
 
-        let mut filter_uptime = None;
         let mut filter_word = None;
-
         if option.word_count.is_some() {
             match option.word_count.as_ref().unwrap() {
                 WordCountRange::Range(range) => {
@@ -438,26 +447,33 @@ impl Client for CiweimaoClient {
                     } else if range.start >= 100_0000 && range.end <= 200_0000 {
                         filter_word = Some(4);
                     } else {
-                        warn!("not support");
+                        return Err(Error::NovelApi(
+                            "This word count option is not supported, please refer to the ciweimao client for the option support".to_string(),
+                        ));
                     }
                 }
                 WordCountRange::RangeFrom(range_from) => {
                     if range_from.start >= 200_0000 {
                         filter_word = Some(5);
                     } else {
-                        warn!("not support");
+                        return Err(Error::NovelApi(
+                            "This word count option is not supported, please refer to the ciweimao client for the option support".to_string(),
+                        ));
                     }
                 }
                 WordCountRange::RangeTo(range_to) => {
                     if range_to.end <= 30_0000 {
                         filter_word = Some(1);
                     } else {
-                        warn!("not support");
+                        return Err(Error::NovelApi(
+                            "This word count option is not supported, please refer to the ciweimao client for the option support".to_string(),
+                        ));
                     }
                 }
             }
         }
 
+        let mut filter_uptime = None;
         if option.update_days.is_some() {
             let update_days = *option.update_days.as_ref().unwrap();
 
@@ -469,6 +485,10 @@ impl Client for CiweimaoClient {
                 filter_uptime = Some(3)
             } else if update_days <= 30 {
                 filter_uptime = Some(4)
+            } else {
+                return Err(Error::NovelApi(
+                    "This update days option is not supported, please refer to the ciweimao client for the option support".to_string(),
+                ));
             }
         }
 
@@ -484,7 +504,7 @@ impl Client for CiweimaoClient {
                     page,
                     category_index: category_id,
                     order: "week_click",
-                    tags: json!(tag_vec).to_string(),
+                    tags: json!(tags).to_string(),
                     is_paid,
                     up_status,
                     filter_uptime,
@@ -495,8 +515,10 @@ impl Client for CiweimaoClient {
         check_response(response.code, response.tip)?;
 
         let mut result = Vec::new();
-        for novel_info in response.data.unwrap().book_list {
-            result.push(novel_info.book_id.parse::<u32>()?);
+        if response.data.is_some() {
+            for novel_info in response.data.unwrap().book_list {
+                result.push(novel_info.book_id.parse::<u32>()?);
+            }
         }
 
         Ok(result)
@@ -681,7 +703,7 @@ impl CiweimaoClient {
         opener::open_browser(format!("http://{}:{}/captcha", addr.ip(), addr.port()))?;
 
         let validate = rx.recv().await.unwrap();
-        let _ = stop_tx.send(());
+        stop_tx.send(()).unwrap();
 
         Ok(validate)
     }

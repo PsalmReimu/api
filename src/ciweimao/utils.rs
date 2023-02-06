@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use boring::{
     sha,
     symm::{self, Cipher},
@@ -61,8 +63,7 @@ impl CiweimaoClient {
     }
 
     async fn load_config_file() -> Result<(Option<String>, Option<String>), Error> {
-        let mut config_file_path = crate::config_dir_path(CiweimaoClient::APP_NAME)?;
-        config_file_path.push(CiweimaoClient::CONFIG_FILE_NAME);
+        let config_file_path = CiweimaoClient::config_file_path()?;
 
         if config_file_path.exists() {
             info!(
@@ -88,6 +89,13 @@ impl CiweimaoClient {
 
             Ok((None, None))
         }
+    }
+
+    fn config_file_path() -> Result<PathBuf, Error> {
+        let mut config_file_path = crate::config_dir_path(CiweimaoClient::APP_NAME)?;
+        config_file_path.push(CiweimaoClient::CONFIG_FILE_NAME);
+
+        Ok(config_file_path)
     }
 
     #[must_use]
@@ -131,7 +139,7 @@ impl CiweimaoClient {
     }
 
     #[inline]
-    pub(crate) async fn client_rss(&self) -> Result<&HTTPClient, Error> {
+    async fn client_rss(&self) -> Result<&HTTPClient, Error> {
         self.client_rss
             .get_or_try_init(|| async {
                 HTTPClient::builder(CiweimaoClient::APP_NAME)
@@ -240,12 +248,13 @@ impl CiweimaoClient {
                 login_token: self.login_token(),
             };
 
-            let mut config_file_path = crate::config_dir_path(CiweimaoClient::APP_NAME)?;
-            config_file_path.push(CiweimaoClient::CONFIG_FILE_NAME);
-
+            let config_file_path = CiweimaoClient::config_file_path()?;
             std::fs::write(&config_file_path, toml::to_string(&config).unwrap())?;
 
             info!("Save the config file at: `{}`", config_file_path.display());
+
+            *self.account.write() = None;
+            *self.login_token.write() = None;
         } else {
             info!("No data can be saved to the configuration file");
         }
@@ -256,6 +265,8 @@ impl CiweimaoClient {
 
 impl Drop for CiweimaoClient {
     fn drop(&mut self) {
-        self.shutdown().expect("Fail to save config file");
+        if let Err(error) = self.shutdown() {
+            warn!("Fail to save config file: `{error}`");
+        }
     }
 }
