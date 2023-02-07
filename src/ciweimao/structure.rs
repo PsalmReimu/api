@@ -224,6 +224,109 @@ pub(crate) struct FavoritesNovelInfo {
 
 #[must_use]
 #[derive(Serialize)]
+pub(crate) struct CategoryRequest {
+    pub app_version: &'static str,
+    pub device_token: &'static str,
+    pub account: String,
+    pub login_token: String,
+}
+
+#[must_use]
+#[derive(Deserialize)]
+pub(crate) struct CategoryResponse {
+    pub code: String,
+    pub tip: Option<String>,
+    pub data: Option<CategoryData>,
+}
+
+#[must_use]
+#[derive(Deserialize)]
+pub(crate) struct CategoryData {
+    pub category_list: Vec<CategoryCategory>,
+}
+
+#[must_use]
+#[derive(Deserialize)]
+pub(crate) struct CategoryCategory {
+    pub category_detail: Vec<CategoryDetail>,
+}
+
+#[must_use]
+#[derive(Deserialize)]
+pub(crate) struct CategoryDetail {
+    pub category_index: String,
+    pub category_name: String,
+}
+
+#[must_use]
+#[derive(Serialize)]
+pub(crate) struct TagRequest {
+    pub app_version: &'static str,
+    pub device_token: &'static str,
+    pub account: String,
+    pub login_token: String,
+}
+
+#[must_use]
+#[derive(Deserialize)]
+pub(crate) struct TagResponse {
+    pub code: String,
+    pub tip: Option<String>,
+    pub data: Option<TagData>,
+}
+
+#[must_use]
+#[derive(Deserialize)]
+pub(crate) struct TagData {
+    pub official_tag_list: Vec<TagTag>,
+}
+
+#[must_use]
+#[derive(Deserialize)]
+pub(crate) struct TagTag {
+    pub tag_name: String,
+}
+
+#[must_use]
+#[derive(Serialize)]
+pub(crate) struct NovelsRequest {
+    pub app_version: &'static str,
+    pub device_token: &'static str,
+    pub account: String,
+    pub login_token: String,
+    pub count: u16,
+    pub page: u16,
+    pub category_index: u16,
+    pub order: &'static str,
+    pub tags: String,
+    pub is_paid: Option<u8>,
+    pub up_status: Option<u8>,
+    pub filter_uptime: Option<u8>,
+    pub filter_word: Option<u8>,
+}
+
+#[must_use]
+#[derive(Deserialize)]
+pub(crate) struct NovelsResponse {
+    pub code: String,
+    pub tip: Option<String>,
+    pub data: Option<NovelsData>,
+}
+
+#[must_use]
+#[derive(Deserialize)]
+pub(crate) struct NovelsData {
+    pub book_list: Vec<NovelsInfo>,
+}
+
+#[must_use]
+#[derive(Deserialize)]
+pub(crate) struct NovelsInfo {
+    pub book_id: String,
+}
+
+#[must_use]
+#[derive(Serialize)]
 pub(crate) struct UseGeetestRequest {
     pub app_version: &'static str,
     pub device_token: &'static str,
@@ -390,107 +493,4 @@ pub(crate) struct ShelfListData {
 #[derive(Deserialize)]
 pub(crate) struct ShelfList {
     pub shelf_id: String,
-}
-
-#[must_use]
-#[derive(Serialize)]
-pub(crate) struct CategoryRequest {
-    pub app_version: &'static str,
-    pub device_token: &'static str,
-    pub account: String,
-    pub login_token: String,
-}
-
-#[must_use]
-#[derive(Deserialize)]
-pub(crate) struct CategoryResponse {
-    pub code: String,
-    pub tip: Option<String>,
-    pub data: Option<CategoryData>,
-}
-
-#[must_use]
-#[derive(Deserialize)]
-pub(crate) struct CategoryData {
-    pub category_list: Vec<CategoryCategory>,
-}
-
-#[must_use]
-#[derive(Deserialize)]
-pub(crate) struct CategoryCategory {
-    pub category_detail: Vec<CategoryDetail>,
-}
-
-#[must_use]
-#[derive(Deserialize)]
-pub(crate) struct CategoryDetail {
-    pub category_index: String,
-    pub category_name: String,
-}
-
-#[must_use]
-#[derive(Serialize)]
-pub(crate) struct TagRequest {
-    pub app_version: &'static str,
-    pub device_token: &'static str,
-    pub account: String,
-    pub login_token: String,
-}
-
-#[must_use]
-#[derive(Deserialize)]
-pub(crate) struct TagResponse {
-    pub code: String,
-    pub tip: Option<String>,
-    pub data: Option<TagData>,
-}
-
-#[must_use]
-#[derive(Deserialize)]
-pub(crate) struct TagData {
-    pub official_tag_list: Vec<TagTag>,
-}
-
-#[must_use]
-#[derive(Deserialize)]
-pub(crate) struct TagTag {
-    pub tag_name: String,
-}
-
-#[must_use]
-#[derive(Serialize)]
-pub(crate) struct NovelsRequest {
-    pub app_version: &'static str,
-    pub device_token: &'static str,
-    pub account: String,
-    pub login_token: String,
-    pub count: u16,
-    pub page: u16,
-    pub category_index: u16,
-    pub order: &'static str,
-    pub tags: String,
-    pub is_paid: Option<u8>,
-    pub up_status: Option<u8>,
-    pub filter_uptime: Option<u8>,
-    pub filter_word: Option<u8>,
-}
-
-#[must_use]
-#[derive(Deserialize)]
-pub(crate) struct NovelsResponse {
-    pub code: String,
-    pub tip: Option<String>,
-    pub data: Option<NovelsData>,
-}
-
-#[must_use]
-#[derive(Deserialize)]
-pub(crate) struct NovelsData {
-    pub book_list: Vec<NovelsInfo>,
-}
-
-#[must_use]
-#[derive(Deserialize)]
-pub(crate) struct NovelsInfo {
-    pub book_id: String,
 }

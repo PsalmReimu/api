@@ -240,7 +240,7 @@ impl CiweimaoClient {
         Ok(result)
     }
 
-    pub(crate) fn shutdown(&self) -> Result<(), Error> {
+    pub(crate) fn do_shutdown(&self) -> Result<(), Error> {
         if self.has_token() {
             let config = Config {
                 version: Version::parse(CiweimaoClient::CONFIG_VERSION).unwrap(),
@@ -265,7 +265,7 @@ impl CiweimaoClient {
 
 impl Drop for CiweimaoClient {
     fn drop(&mut self) {
-        if let Err(error) = self.shutdown() {
+        if let Err(error) = self.do_shutdown() {
             warn!("Fail to save config file: `{error}`");
         }
     }

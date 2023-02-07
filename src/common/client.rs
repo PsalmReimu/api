@@ -35,7 +35,7 @@ pub struct NovelInfo {
     /// Novel word count
     pub word_count: Option<u32>,
     /// Is the novel finished
-    pub finished: Option<bool>,
+    pub is_finished: Option<bool>,
     /// Novel creation time
     pub create_time: Option<NaiveDateTime>,
     /// Novel last update time
@@ -157,21 +157,32 @@ pub enum ContentInfo {
     Image(Url),
 }
 
+/// Options used by the search
 #[derive(Default)]
 pub struct Options {
+    /// Is it finished
     pub is_finished: Option<bool>,
+    /// Whether this chapter can only be read by VIP users
     pub is_vip: Option<bool>,
+    /// Category
     pub category: Option<Category>,
+    /// Included tags
     pub tags: Option<Vec<Tag>>,
-    pub exclude_tags: Option<Vec<Tag>>,
+    /// Excluded tags
+    pub excluded_tags: Option<Vec<Tag>>,
+    /// The number of days since the last update
     pub update_days: Option<u8>,
+    /// Word count
     pub word_count: Option<WordCountRange>,
 }
 
-///
+/// Word count range
 pub enum WordCountRange {
+    /// Set minimum and maximum word count
     Range(Range<u32>),
+    /// Set minimum word count
     RangeFrom(RangeFrom<u32>),
+    /// Set maximum word count
     RangeTo(RangeTo<u32>),
 }
 
@@ -190,7 +201,7 @@ pub trait Client {
         T: AsRef<Path>;
 
     /// Stop the client, save the data
-    fn shutdown(&self) -> Result<(), Error>;
+    fn shutdown(self) -> Result<(), Error>;
 
     /// Add cookie
     async fn add_cookie(&self, cookie_str: &str, url: &Url) -> Result<(), Error>;
@@ -224,11 +235,12 @@ pub trait Client {
     /// Get the favorite novel of the logged-in user and return the novel id
     async fn favorite_infos(&self) -> Result<Vec<u32>, Error>;
 
-    /// Get category
+    /// Get all categories
     async fn categories(&self) -> Result<&Vec<Category>, Error>;
 
     /// Get all tags
     async fn tags(&self) -> Result<&Vec<Tag>, Error>;
 
+    /// Search all matching novels
     async fn novels(&self, option: &Options, page: u16, size: u16) -> Result<Vec<u32>, Error>;
 }

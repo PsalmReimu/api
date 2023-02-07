@@ -49,8 +49,8 @@ impl Client for SfacgClient {
         self.cert_path = Some(cert_path.as_ref().to_path_buf());
     }
 
-    fn shutdown(&self) -> Result<(), Error> {
-        self.client.get().unwrap().shutdown()
+    fn shutdown(mut self) -> Result<(), Error> {
+        self.client.get_mut().unwrap().shutdown()
     }
 
     async fn add_cookie(&self, cookie_str: &str, url: &Url) -> Result<(), Error> {
@@ -106,7 +106,7 @@ impl Client for SfacgClient {
             .get_query(
                 format!("/novels/{id}"),
                 &NovelInfoRequest {
-                    expand: Some("intro,typeName,sysTags"),
+                    expand: "intro,typeName,sysTags",
                 },
             )
             .await?
@@ -137,7 +137,7 @@ impl Client for SfacgClient {
             cover_url: Some(novel_data.novel_cover),
             introduction: SfacgClient::parse_intro(novel_data.expand.intro),
             word_count,
-            finished: Some(novel_data.is_finish),
+            is_finished: Some(novel_data.is_finish),
             create_time: Some(novel_data.add_time),
             update_time: Some(novel_data.last_update_time),
             category: Some(category),
@@ -207,9 +207,7 @@ impl Client for SfacgClient {
                 let response = self
                     .get_query(
                         format!("/Chaps/{}", info.identifier.to_string()),
-                        &ChapsRequest {
-                            expand: Some("content"),
-                        },
+                        &ChapsRequest { expand: "content" },
                     )
                     .await?
                     .json::<ChapsResponse>()
@@ -268,7 +266,6 @@ impl Client for SfacgClient {
             .get_query(
                 "/search/novels/result/new",
                 &SearchRequest {
-                    expand: None,
                     page,
                     q: text.as_ref().to_string(),
                     size,
@@ -295,7 +292,7 @@ impl Client for SfacgClient {
             .get_query(
                 "/user/Pockets",
                 &FavoritesRequest {
-                    expand: Some("novels,albums,comics"),
+                    expand: "novels,albums,comics",
                 },
             )
             .await?
@@ -334,7 +331,7 @@ impl Client for SfacgClient {
                 for tag_data in response.data.unwrap() {
                     result.push(Category {
                         id: Some(tag_data.type_id),
-                        name: tag_data.type_name,
+                        name: tag_data.type_name.trim().to_string(),
                     });
                 }
 
@@ -359,7 +356,7 @@ impl Client for SfacgClient {
             for tag_data in response.data.unwrap() {
                 result.push(Tag {
                     id: Some(tag_data.sys_tag_id),
-                    name: tag_data.tag_name,
+                    name: tag_data.tag_name.trim().to_string(),
                 });
             }
 
@@ -406,7 +403,7 @@ impl Client for SfacgClient {
                 .join(",")
         });
 
-        let not_exclude_sys_tag_ids = option.exclude_tags.as_ref().map(|tags| {
+        let not_exclude_sys_tag_ids = option.excluded_tags.as_ref().map(|tags| {
             tags.iter()
                 .map(|tag| tag.id.unwrap().to_string())
                 .collect::<Vec<String>>()

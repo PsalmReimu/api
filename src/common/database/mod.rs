@@ -69,9 +69,7 @@ impl NovelDB {
         let identifier = info.identifier.to_string();
         let time = info.update_time;
 
-        let model = Text::find_by_id(identifier).one(&self.db).await?;
-
-        match model {
+        match Text::find_by_id(identifier).one(&self.db).await? {
             Some(model) => {
                 let saved_data_time = model.date_time;
 

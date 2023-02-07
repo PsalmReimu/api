@@ -79,7 +79,7 @@ pub(crate) struct UserData {
 #[must_use]
 #[derive(Serialize)]
 pub(crate) struct NovelInfoRequest {
-    pub expand: Option<&'static str>,
+    pub expand: &'static str,
 }
 
 #[must_use]
@@ -160,7 +160,7 @@ pub(crate) struct NovelsDirsChapterInfo {
 #[must_use]
 #[derive(Serialize)]
 pub(crate) struct ChapsRequest {
-    pub expand: Option<&'static str>,
+    pub expand: &'static str,
 }
 
 #[must_use]
@@ -185,7 +185,6 @@ pub(crate) struct ChapsExpand {
 #[must_use]
 #[derive(Serialize)]
 pub(crate) struct SearchRequest {
-    pub expand: Option<&'static str>,
     pub page: u16,
     pub q: String,
     pub size: u16,
@@ -215,7 +214,7 @@ pub(crate) struct SearchNovelInfo {
 #[must_use]
 #[derive(Serialize)]
 pub(crate) struct FavoritesRequest {
-    pub expand: Option<&'static str>,
+    pub expand: &'static str,
 }
 
 #[must_use]

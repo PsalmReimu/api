@@ -68,8 +68,8 @@ impl Client for CiweimaoClient {
         Ok(self.client().await?.add_cookie(cookie_str, url)?)
     }
 
-    fn shutdown(&self) -> Result<(), Error> {
-        self.shutdown()
+    fn shutdown(self) -> Result<(), Error> {
+        self.do_shutdown()
     }
 
     async fn login<T, E>(&self, username: T, password: E) -> Result<(), Error>
@@ -121,7 +121,13 @@ impl Client for CiweimaoClient {
         check_response(response.code, response.tip)?;
 
         let user_info = UserInfo {
-            nickname: response.data.unwrap().reader_info.reader_name,
+            nickname: response
+                .data
+                .unwrap()
+                .reader_info
+                .reader_name
+                .trim()
+                .to_string(),
         };
 
         Ok(Some(user_info))
@@ -148,12 +154,12 @@ impl Client for CiweimaoClient {
         let data = response.data.unwrap().book_info;
         let novel_info = NovelInfo {
             id,
-            name: data.book_name,
-            author_name: data.author_name,
+            name: data.book_name.trim().to_string(),
+            author_name: data.author_name.trim().to_string(),
             cover_url: CiweimaoClient::parse_url(data.cover),
             introduction: CiweimaoClient::parse_introduction(data.description),
             word_count: CiweimaoClient::parse_number(data.total_word_count),
-            finished: CiweimaoClient::parse_bool(data.up_status),
+            is_finished: CiweimaoClient::parse_bool(data.up_status),
             create_time: CiweimaoClient::parse_data_time(data.newtime),
             update_time: CiweimaoClient::parse_data_time(data.uptime),
             category: self.parse_category(data.category_index).await?,
@@ -181,14 +187,14 @@ impl Client for CiweimaoClient {
         let mut volume_infos = VolumeInfos::new();
         for item in response.data.unwrap().chapter_list {
             let mut volume_info = VolumeInfo {
-                title: item.division_name,
+                title: item.division_name.trim().to_string(),
                 chapter_infos: Vec::new(),
             };
 
             for chapter in item.chapter_list {
                 let chapter_info = ChapterInfo {
                     identifier: Identifier::Id(chapter.chapter_id.parse::<u32>()?),
-                    title: chapter.chapter_title,
+                    title: chapter.chapter_title.trim().to_string(),
                     word_count: CiweimaoClient::parse_number(chapter.word_count),
                     update_time: CiweimaoClient::parse_data_time(chapter.mtime),
                     is_vip: None,
@@ -312,8 +318,6 @@ impl Client for CiweimaoClient {
     }
 
     async fn favorite_infos(&self) -> Result<Vec<u32>, Error> {
-        let shelf_id = self.shelf_list().await?;
-
         let response: FavoritesResponse = self
             .post(
                 "/bookshelf/get_shelf_book_list_new",
@@ -322,7 +326,7 @@ impl Client for CiweimaoClient {
                     device_token: CiweimaoClient::DEVICE_TOKEN,
                     account: self.account(),
                     login_token: self.login_token(),
-                    shelf_id,
+                    shelf_id: self.shelf_list().await?,
                 },
             )
             .await?;
@@ -361,7 +365,7 @@ impl Client for CiweimaoClient {
                     for category_detail in category.category_detail {
                         result.push(Category {
                             id: CiweimaoClient::parse_number(category_detail.category_index),
-                            name: category_detail.category_name,
+                            name: category_detail.category_name.trim().to_string(),
                         });
                     }
                 }
@@ -392,7 +396,7 @@ impl Client for CiweimaoClient {
             for tag in response.data.unwrap().official_tag_list {
                 result.push(Tag {
                     id: None,
-                    name: tag.tag_name,
+                    name: tag.tag_name.trim().to_string(),
                 });
             }
 
@@ -418,11 +422,10 @@ impl Client for CiweimaoClient {
 
         let json_obj = |tag_name| {
             json!({
-                "tag":tag_name,
-                "filter":"1"
+                "tag": tag_name,
+                "filter": "1"
             })
         };
-
         let mut tags = Vec::new();
         if option.tags.is_some() {
             for tag in option.tags.as_ref().unwrap() {
@@ -439,6 +442,15 @@ impl Client for CiweimaoClient {
         let mut filter_word = None;
         if option.word_count.is_some() {
             match option.word_count.as_ref().unwrap() {
+                WordCountRange::RangeTo(range_to) => {
+                    if range_to.end <= 30_0000 {
+                        filter_word = Some(1);
+                    } else {
+                        return Err(Error::NovelApi(
+                            "This word count option is not supported, please refer to the ciweimao client for the option support".to_string(),
+                        ));
+                    }
+                }
                 WordCountRange::Range(range) => {
                     if range.start >= 30_0000 && range.end <= 50_0000 {
                         filter_word = Some(2);
@@ -455,15 +467,6 @@ impl Client for CiweimaoClient {
                 WordCountRange::RangeFrom(range_from) => {
                     if range_from.start >= 200_0000 {
                         filter_word = Some(5);
-                    } else {
-                        return Err(Error::NovelApi(
-                            "This word count option is not supported, please refer to the ciweimao client for the option support".to_string(),
-                        ));
-                    }
-                }
-                WordCountRange::RangeTo(range_to) => {
-                    if range_to.end <= 30_0000 {
-                        filter_word = Some(1);
                     } else {
                         return Err(Error::NovelApi(
                             "This word count option is not supported, please refer to the ciweimao client for the option support".to_string(),
@@ -644,7 +647,6 @@ impl CiweimaoClient {
         Ok(response)
     }
 
-    // TODO 更美观的页面
     async fn run_server(info: GeetestInfoResponse) -> Result<String, Error> {
         #[cfg(target_os = "windows")]
         macro_rules! PATH_SEPARATOR {
@@ -821,7 +823,6 @@ impl CiweimaoClient {
             Ok(data_time) => Some(data_time),
             Err(error) => {
                 warn!("`NaiveDateTime` parse failed: {error}, content: {str}");
-
                 None
             }
         }
@@ -920,10 +921,7 @@ impl CiweimaoClient {
 
         match str.parse::<u16>() {
             Ok(index) => match categories.iter().find(|item| item.id == Some(index)) {
-                Some(category) => Ok(Some(Category {
-                    id: category.id,
-                    name: category.name.clone(),
-                })),
+                Some(category) => Ok(Some(category.clone())),
                 None => {
                     warn!("The category index does not exist: {str}");
                     Ok(None)
@@ -984,6 +982,6 @@ impl CiweimaoClient {
         }
         let url = url.unwrap();
 
-        CiweimaoClient::parse_url(url)
+        CiweimaoClient::parse_url(url.trim())
     }
 }

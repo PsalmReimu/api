@@ -13,7 +13,7 @@ use reqwest::{
 };
 use reqwest_cookie_store::{CookieStore, CookieStoreMutex};
 use tokio::fs;
-use tracing::info;
+use tracing::{info, warn};
 use url::Url;
 
 use crate::Error;
@@ -28,7 +28,7 @@ where
     if code != StatusCode::OK {
         return Err(Error::Http {
             code,
-            msg: msg.as_ref().to_string(),
+            msg: msg.as_ref().trim().to_string(),
         });
     }
 
@@ -219,8 +219,8 @@ impl HTTPClient {
         Ok(())
     }
 
-    pub(crate) fn shutdown(&self) -> Result<(), Error> {
-        if let Some(ref cookie_store) = self.cookie_store {
+    pub(crate) fn shutdown(&mut self) -> Result<(), Error> {
+        if let Some(cookie_store) = self.cookie_store.take() {
             let mut config_path = crate::config_dir_path(self.app_name)?;
             config_path.push(COOKIE_FILE_NAME);
 
@@ -246,6 +246,8 @@ impl Deref for HTTPClient {
 
 impl Drop for HTTPClient {
     fn drop(&mut self) {
-        self.shutdown().expect("Fail to save cookie");
+        if let Err(error) = self.shutdown() {
+            warn!("Fail to save cookie: {error}");
+        }
     }
 }
