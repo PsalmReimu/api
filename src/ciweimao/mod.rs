@@ -68,7 +68,7 @@ impl Client for CiweimaoClient {
         Ok(self.client().await?.add_cookie(cookie_str, url)?)
     }
 
-    fn shutdown(self) -> Result<(), Error> {
+    fn shutdown(&mut self) -> Result<(), Error> {
         self.do_shutdown()
     }
 

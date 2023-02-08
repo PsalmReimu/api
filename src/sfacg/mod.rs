@@ -49,7 +49,7 @@ impl Client for SfacgClient {
         self.cert_path = Some(cert_path.as_ref().to_path_buf());
     }
 
-    fn shutdown(mut self) -> Result<(), Error> {
+    fn shutdown(&mut self) -> Result<(), Error> {
         self.client.get_mut().unwrap().shutdown()
     }
 
