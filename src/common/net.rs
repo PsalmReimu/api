@@ -7,6 +7,7 @@ use std::{
 };
 
 use http::StatusCode;
+use parking_lot::RwLock;
 use reqwest::{
     header::{HeaderMap, HeaderValue, ACCEPT, ACCEPT_LANGUAGE, CONNECTION},
     Certificate, Client, Proxy,
@@ -17,8 +18,6 @@ use tracing::{info, warn};
 use url::Url;
 
 use crate::Error;
-
-const COOKIE_FILE_NAME: &str = "cookie.json";
 
 #[inline]
 pub(crate) fn check_status<T>(code: StatusCode, msg: T) -> Result<(), Error>
@@ -49,6 +48,8 @@ pub(crate) struct HTTPClientBuilder {
 }
 
 impl HTTPClientBuilder {
+    const COOKIE_FILE_NAME: &str = "cookie.json";
+
     pub(crate) fn new(app_name: &'static str) -> Self {
         Self {
             app_name,
@@ -56,7 +57,7 @@ impl HTTPClientBuilder {
                 "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
             ),
             accept_language: HeaderValue::from_static("zh-CN,zh;q=0.9"),
-            user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36".to_string(),
+            user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36".to_string(),
             cookie: false,
             allow_compress: true,
             proxy: None,
@@ -167,39 +168,44 @@ impl HTTPClientBuilder {
 
         Ok(HTTPClient {
             app_name: self.app_name,
-            cookie_store,
+            cookie_store: RwLock::new(cookie_store),
             client: client_builder.build()?,
         })
     }
 
     async fn create_cookie_store(&self) -> Result<CookieStoreMutex, Error> {
-        let mut config_dir = crate::config_dir_path(self.app_name)?;
-        fs::create_dir_all(&config_dir).await?;
+        let cookie_path = HTTPClientBuilder::cookie_path(self.app_name)?;
 
-        config_dir.push(COOKIE_FILE_NAME);
+        let cookie_store = if cookie_path.try_exists()? {
+            info!("The cookie file is located at: `{}`", cookie_path.display());
 
-        let cookie_store = if !config_dir.exists() {
+            let json = fs::read(&cookie_path).await?;
+            CookieStore::load_json(json.as_slice())?
+        } else {
             info!(
                 "The cookie file will be created at: `{}`",
-                config_dir.display()
+                cookie_path.display()
             );
 
+            fs::create_dir_all(cookie_path.parent().unwrap()).await?;
             CookieStore::default()
-        } else {
-            info!("The cookie file is located at: `{}`", config_dir.display());
-
-            let json = fs::read(&config_dir).await?;
-            CookieStore::load_json(json.as_slice())?
         };
 
         Ok(CookieStoreMutex::new(cookie_store))
+    }
+
+    fn cookie_path(app_name: &str) -> Result<PathBuf, Error> {
+        let mut config_path = crate::config_dir_path(app_name)?;
+        config_path.push(HTTPClientBuilder::COOKIE_FILE_NAME);
+
+        Ok(config_path)
     }
 }
 
 #[must_use]
 pub(crate) struct HTTPClient {
     app_name: &'static str,
-    cookie_store: Option<Arc<CookieStoreMutex>>,
+    cookie_store: RwLock<Option<Arc<CookieStoreMutex>>>,
     client: Client,
 }
 
@@ -210,6 +216,7 @@ impl HTTPClient {
 
     pub(crate) fn add_cookie(&self, cookie_str: &str, url: &Url) -> Result<(), Error> {
         self.cookie_store
+            .write()
             .as_ref()
             .expect("Cookies not turned on")
             .lock()
@@ -219,17 +226,23 @@ impl HTTPClient {
         Ok(())
     }
 
-    pub(crate) fn shutdown(&mut self) -> Result<(), Error> {
-        if let Some(cookie_store) = self.cookie_store.take() {
-            let mut config_path = crate::config_dir_path(self.app_name)?;
-            config_path.push(COOKIE_FILE_NAME);
+    pub(crate) fn shutdown(&self) -> Result<(), Error> {
+        if self.cookie_store.read().is_some() {
+            let cookie_path = HTTPClientBuilder::cookie_path(self.app_name)?;
 
-            info!("Save the cookie file at: `{}`", config_path.display());
-            let file = std::fs::File::create(config_path)?;
+            info!("Save the cookie file at: `{}`", cookie_path.display());
+            let file = std::fs::File::create(cookie_path)?;
 
             let mut writer = BufWriter::new(file);
-            let store = cookie_store.lock().unwrap();
-            store.save_json(&mut writer)?;
+            self.cookie_store
+                .read()
+                .as_ref()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .save_json(&mut writer)?;
+
+            *self.cookie_store.write() = None;
         }
 
         Ok(())

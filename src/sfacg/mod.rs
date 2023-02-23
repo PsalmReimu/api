@@ -49,8 +49,8 @@ impl Client for SfacgClient {
         self.cert_path = Some(cert_path.as_ref().to_path_buf());
     }
 
-    fn shutdown(&mut self) -> Result<(), Error> {
-        self.client.get_mut().unwrap().shutdown()
+    async fn shutdown(&self) -> Result<(), Error> {
+        self.client().await?.shutdown()
     }
 
     async fn add_cookie(&self, cookie_str: &str, url: &Url) -> Result<(), Error> {
@@ -75,6 +75,7 @@ impl Client for SfacgClient {
             .await?;
         response.status.check()?;
 
+        // TODO Is it really necessary?
         let response = self
             .get("/position")
             .await?
@@ -360,6 +361,7 @@ impl Client for SfacgClient {
                 });
             }
 
+            // Tag that have been removed, but can still be used
             result.push(Tag {
                 id: Some(74),
                 name: "百合".to_string(),
@@ -376,39 +378,11 @@ impl Client for SfacgClient {
             category_id = option.category.as_ref().unwrap().id.unwrap();
         }
 
-        let is_finish = if option.is_finished.is_some() {
-            if *option.is_finished.as_ref().unwrap() {
-                "is"
-            } else {
-                "not"
-            }
-        } else {
-            "both"
-        };
+        let is_finish = SfacgClient::bool_to_str(&option.is_finished);
+        let is_free = SfacgClient::bool_to_str(&option.is_vip.as_ref().map(|x| !x));
 
-        let is_free = if option.is_vip.is_some() {
-            if *option.is_vip.as_ref().unwrap() {
-                "not"
-            } else {
-                "is"
-            }
-        } else {
-            "both"
-        };
-
-        let sys_tag_ids = option.tags.as_ref().map(|tags| {
-            tags.iter()
-                .map(|tag| tag.id.unwrap().to_string())
-                .collect::<Vec<String>>()
-                .join(",")
-        });
-
-        let not_exclude_sys_tag_ids = option.excluded_tags.as_ref().map(|tags| {
-            tags.iter()
-                .map(|tag| tag.id.unwrap().to_string())
-                .collect::<Vec<String>>()
-                .join(",")
-        });
+        let sys_tag_ids = SfacgClient::tag_ids(&option.tags);
+        let not_exclude_sys_tag_ids = SfacgClient::tag_ids(&option.excluded_tags);
 
         let mut char_count_begin = 0;
         let mut char_count_end = 0;
@@ -447,8 +421,10 @@ impl Client for SfacgClient {
         response.status.check()?;
 
         let mut result = Vec::new();
-        for novel_data in response.data.unwrap() {
-            result.push(novel_data.novel_id);
+        if response.data.is_some() {
+            for novel_data in response.data.unwrap() {
+                result.push(novel_data.novel_id);
+            }
         }
 
         Ok(result)
@@ -492,6 +468,7 @@ impl SfacgClient {
 
         if begin.is_none() || end.is_none() {
             warn!("Image URL format is incorrect: {line}");
+            return None;
         }
 
         let begin = begin.unwrap();
@@ -512,5 +489,26 @@ impl SfacgClient {
                 None
             }
         }
+    }
+
+    fn bool_to_str(flag: &Option<bool>) -> &'static str {
+        if flag.is_some() {
+            if *flag.as_ref().unwrap() {
+                "is"
+            } else {
+                "not"
+            }
+        } else {
+            "both"
+        }
+    }
+
+    fn tag_ids(tags: &Option<Vec<Tag>>) -> Option<String> {
+        tags.as_ref().map(|tags| {
+            tags.iter()
+                .map(|tag| tag.id.unwrap().to_string())
+                .collect::<Vec<String>>()
+                .join(",")
+        })
     }
 }

@@ -10,15 +10,15 @@ pub struct Keyring {
 
 impl Keyring {
     /// Create a Keyring
-    pub fn new<T, E>(app_name: T, username: E) -> Self
+    pub fn new<T, E>(app_name: T, username: E) -> Result<Self, Error>
     where
         T: AsRef<str>,
         E: AsRef<str>,
     {
         let service = format!("novel-{}", app_name.as_ref());
-        let entry = Entry::new(&service, username.as_ref());
+        let entry = Entry::new(&service, username.as_ref())?;
 
-        Self { entry }
+        Ok(Self { entry })
     }
 
     /// Get password
@@ -50,7 +50,7 @@ mod tests {
     #[cfg_attr(feature = "ci", ignore)]
     fn keyring() -> Result<(), Error> {
         let password = "test-username";
-        let keyring = Keyring::new("test", password);
+        let keyring = Keyring::new("test", password)?;
 
         keyring.set_password(password)?;
         assert_eq!(keyring.get_password()?, password);

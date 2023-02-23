@@ -3,6 +3,7 @@ use tracing::warn;
 use uuid::Uuid;
 
 #[must_use]
+#[inline]
 pub(crate) fn uid() -> &'static String {
     static UID: OnceCell<String> = OnceCell::new();
 

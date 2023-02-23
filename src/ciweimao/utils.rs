@@ -65,7 +65,7 @@ impl CiweimaoClient {
     async fn load_config_file() -> Result<(Option<String>, Option<String>), Error> {
         let config_file_path = CiweimaoClient::config_file_path()?;
 
-        if config_file_path.exists() {
+        if config_file_path.try_exists()? {
             info!(
                 "The config file is located at: `{}`",
                 config_file_path.display()
@@ -82,6 +82,8 @@ impl CiweimaoClient {
                 Ok((Some(config.account), Some(config.login_token)))
             }
         } else {
+            fs::create_dir_all(config_file_path.parent().unwrap()).await?;
+
             info!(
                 "The config file will be created at: `{}`",
                 config_file_path.display()

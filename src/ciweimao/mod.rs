@@ -68,7 +68,7 @@ impl Client for CiweimaoClient {
         Ok(self.client().await?.add_cookie(cookie_str, url)?)
     }
 
-    fn shutdown(&mut self) -> Result<(), Error> {
+    async fn shutdown(&self) -> Result<(), Error> {
         self.do_shutdown()
     }
 
@@ -408,16 +408,7 @@ impl Client for CiweimaoClient {
     async fn novels(&self, option: &Options, page: u16, size: u16) -> Result<Vec<u32>, Error> {
         let mut category_id = 0;
         if option.category.is_some() {
-            let category = option.category.as_ref().unwrap();
-
-            if let Some(id) = category.id {
-                category_id = id;
-            } else {
-                warn!(
-                    "Invalid category, its category_id does not exist: `{}`",
-                    category.name
-                );
-            }
+            category_id = option.category.as_ref().unwrap().id.unwrap();
         }
 
         let json_obj = |tag_name| {
@@ -898,6 +889,8 @@ impl CiweimaoClient {
 
             if tags.iter().any(|item| item.name == name) {
                 result.push(Tag { id: None, name });
+            } else {
+                warn!("This tag is not a system tag and is ignored");
             }
         }
 

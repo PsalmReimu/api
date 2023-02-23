@@ -5,7 +5,7 @@ use tracing::warn;
 
 use crate::Error;
 
-/// Returns the path to the user's home directory
+/// Return the path to the user's home directory
 pub fn home_dir_path() -> Result<PathBuf, Error> {
     if let Some(user_dirs) = UserDirs::new() {
         Ok(user_dirs.home_dir().to_path_buf())
@@ -16,7 +16,7 @@ pub fn home_dir_path() -> Result<PathBuf, Error> {
     }
 }
 
-/// Returns the path to the project's config directory or the current directory on failure
+/// Return the path to the project's config directory or the current directory on failure
 pub fn config_dir_path(app_name: &str) -> Result<PathBuf, Error> {
     match ProjectDirs::from("", "", app_name) {
         Some(dir) => Ok(dir.config_dir().to_path_buf()),
@@ -27,7 +27,7 @@ pub fn config_dir_path(app_name: &str) -> Result<PathBuf, Error> {
     }
 }
 
-/// Returns the path to the project's local data directory or the current directory on failure
+/// Return the path to the project's local data directory or the current directory on failure
 pub fn data_dir_path(app_name: &str) -> Result<PathBuf, Error> {
     match ProjectDirs::from("", "", app_name) {
         Some(dir) => Ok(dir.data_local_dir().to_path_buf()),

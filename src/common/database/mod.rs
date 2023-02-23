@@ -1,7 +1,7 @@
 mod entity;
 mod migration;
 
-use std::io::Cursor;
+use std::{io::Cursor, path::PathBuf};
 
 use async_compression::tokio::{bufread::ZstdDecoder, write::ZstdEncoder};
 use image::{io::Reader, DynamicImage};
@@ -38,19 +38,20 @@ pub(crate) enum FindImageResult {
 }
 
 impl NovelDB {
+    const DB_NAME: &str = "novel.db";
+
     pub(crate) async fn new(app_name: &str) -> Result<Self, Error> {
-        let mut db_path = crate::data_dir_path(app_name)?;
-        fs::create_dir_all(&db_path).await?;
+        let db_path = NovelDB::db_path(app_name)?;
 
-        db_path.push("novel.db");
-
-        if db_path.exists() {
+        if db_path.try_exists()? {
             info!("The database file is located at `{}`", db_path.display());
         } else {
             info!(
                 "The database file will be created at `{}`",
                 db_path.display()
             );
+
+            fs::create_dir_all(db_path.parent().unwrap()).await?;
         }
 
         let db_url = format!("sqlite:{}?mode=rwc", db_path.display());
@@ -145,6 +146,13 @@ impl NovelDB {
 
         Ok(())
     }
+
+    fn db_path(app_name: &str) -> Result<PathBuf, Error> {
+        let mut db_path = crate::data_dir_path(app_name)?;
+        db_path.push(NovelDB::DB_NAME);
+
+        Ok(db_path)
+    }
 }
 
 async fn zstd_decompress<T>(data: T) -> Result<Vec<u8>, Error>
@@ -154,6 +162,7 @@ where
     let mut reader = ZstdDecoder::new(BufReader::new(data.as_ref()));
     let mut buf = Vec::new();
     reader.read_to_end(&mut buf).await?;
+
     Ok(buf)
 }
 

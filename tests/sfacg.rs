@@ -1,19 +1,13 @@
 use anyhow::Result;
 
-use novel_api::{Client, Options, SfacgClient};
+use novel_api::{Client, Options, SfacgClient, WordCountRange};
 use tokio::fs;
 
-#[tokio::test]
-async fn sfacg() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let novel_id = 263060;
 
     let client = SfacgClient::new().await?;
-
-    let user_info = client.user_info().await?;
-    assert!(user_info.is_none());
-
-    let novel_info = client.novel_info(42949667).await?;
-    assert!(novel_info.is_none());
 
     let novel_info = client.novel_info(novel_id).await?;
     println!("{novel_info:#?}");
@@ -42,7 +36,11 @@ async fn sfacg() -> Result<()> {
     let tag_infos = client.tags().await?;
     println!("{tag_infos:#?}");
 
-    let options = Options::default();
+    let options = Options {
+        tags: Some(vec![tag_infos[0].clone()]),
+        word_count: Some(WordCountRange::RangeFrom(90_0000..)),
+        ..Default::default()
+    };
     let novels = client.novels(&options, 0, 12).await?;
     println!("{novels:#?}");
 

@@ -28,7 +28,7 @@ async fn main() -> Result<()> {
     fs::remove_file(image_file_name).await?;
 
     let search_infos = client.search_infos("测试", 0, 12).await?;
-    println!("{search_infos:?}");
+    println!("{search_infos:#?}");
 
     let category_infos = client.categories().await?;
     println!("{category_infos:#?}");

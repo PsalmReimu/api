@@ -35,7 +35,7 @@ parking_lot = { version = "0.12.1", default-features = false, features = [
   "hardware-lock-elision",
 ] }
 # https://github.com/matklad/once_cell
-once_cell = { version = "1.17.0", default-features = false, features = [
+once_cell = { version = "1.17.1", default-features = false, features = [
   "std",
   "parking_lot",
 ] }
@@ -45,7 +45,7 @@ simdutf8 = { version = "0.1.4", default-features = false, features = [
   "aarch64_neon",
 ] }
 # https://github.com/serde-rs/json
-serde_json = { version = "1.0.92", default-features = false, features = [
+serde_json = { version = "1.0.93", default-features = false, features = [
   "std",
 ] }
 # https://github.com/causal-agent/scraper
@@ -87,7 +87,7 @@ cookie_store = { version = "0.19.0", default-features = false }
 # https://github.com/pfernie/reqwest_cookie_store
 reqwest_cookie_store = { version = "0.5.0", default-features = false }
 # https://github.com/hyperium/http
-http = { version = "0.2.8", default-features = false }
+http = { version = "0.2.9", default-features = false }
 # https://github.com/servo/rust-url
 url = { version = "2.3.1", default-features = false, features = ["serde"] }
 # https://github.com/seanmonstar/reqwest
@@ -129,7 +129,9 @@ toml = { version = "0.7.2", default-features = false, features = [
   "display",
 ] }
 # https://github.com/hwchen/keyring-rs
-keyring = { version = "1.2.1", default-features = false }
+keyring = { version = "2.0.1", default-features = false, features = [
+  "linux-secret-service-rt-tokio-crypto-rust",
+] }
 # https://github.com/Hanaasagi/machine-uid
 machine-uid = { version = "0.2.0", default-features = false }
 # https://github.com/Seeker14491/opener
