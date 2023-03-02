@@ -43,7 +43,7 @@ impl NovelDB {
     pub(crate) async fn new(app_name: &str) -> Result<Self, Error> {
         let db_path = NovelDB::db_path(app_name)?;
 
-        if db_path.try_exists()? {
+        if fs::try_exists(&db_path).await? {
             info!("The database file is located at `{}`", db_path.display());
         } else {
             info!(

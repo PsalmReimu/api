@@ -176,7 +176,7 @@ impl HTTPClientBuilder {
     async fn create_cookie_store(&self) -> Result<CookieStoreMutex, Error> {
         let cookie_path = HTTPClientBuilder::cookie_path(self.app_name)?;
 
-        let cookie_store = if cookie_path.try_exists()? {
+        let cookie_store = if fs::try_exists(&cookie_path).await? {
             info!("The cookie file is located at: `{}`", cookie_path.display());
 
             let json = fs::read(&cookie_path).await?;

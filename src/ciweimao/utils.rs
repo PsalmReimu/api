@@ -65,7 +65,7 @@ impl CiweimaoClient {
     async fn load_config_file() -> Result<(Option<String>, Option<String>), Error> {
         let config_file_path = CiweimaoClient::config_file_path()?;
 
-        if config_file_path.try_exists()? {
+        if fs::try_exists(&config_file_path).await? {
             info!(
                 "The config file is located at: `{}`",
                 config_file_path.display()
