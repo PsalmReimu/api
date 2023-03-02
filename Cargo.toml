@@ -24,7 +24,7 @@ serde = { version = "1.0.152", default-features = false, features = [
 # https://github.com/dtolnay/async-trait
 async-trait = { version = "0.1.64", default-features = false }
 # https://github.com/tokio-rs/tokio
-tokio = { version = "1.25.0", default-features = false, features = [
+tokio = { version = "1.26.0", default-features = false, features = [
   "fs",
   "sync",
   "rt-multi-thread",
@@ -49,7 +49,7 @@ serde_json = { version = "1.0.93", default-features = false, features = [
   "std",
 ] }
 # https://github.com/causal-agent/scraper
-scraper = { version = "0.14.0", default-features = false }
+scraper = { version = "0.15.0", default-features = false }
 # https://github.com/uuid-rs/uuid
 uuid = { version = "1.3.0", default-features = false, features = [
   "std",
@@ -147,7 +147,7 @@ pretty_assertions = { version = "1.3.0", default-features = false, features = [
   "std",
 ] }
 # https://github.com/tokio-rs/tokio
-tokio = { version = "1.25.0", default-features = false, features = [
+tokio = { version = "1.26.0", default-features = false, features = [
   "macros",
   "fs",
   "rt-multi-thread",
