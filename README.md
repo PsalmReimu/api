@@ -10,6 +10,20 @@
 
 Apis of sfacg and ciweimao
 
+## Platform
+
+- Windows
+- Linux
+- macOS
+
+## Dependencies
+
+- CMake
+
+If you are using Windows, you also need:
+
+- NASM
+
 ## Contributing
 
 You should read [CONTRIBUTING](https://github.com/novel-rs/api/blob/main/CONTRIBUTING.md) first
