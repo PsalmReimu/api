@@ -21,23 +21,23 @@ async fn main() -> Result<()> {
     println!("{content_infos:#?}");
 
     let image_file_name = "sfacg-test.webp";
-    let image_info = client
+    let image = client
         .image(&novel_info.unwrap().cover_url.unwrap())
         .await?;
-    image_info.save(image_file_name)?;
+    image.save(image_file_name)?;
     fs::remove_file(image_file_name).await?;
 
     let search_infos = client.search_infos("测试", 0, 12).await?;
     println!("{search_infos:#?}");
 
-    let category_infos = client.categories().await?;
-    println!("{category_infos:#?}");
+    let categories = client.categories().await?;
+    println!("{categories:#?}");
 
-    let tag_infos = client.tags().await?;
-    println!("{tag_infos:#?}");
+    let tags = client.tags().await?;
+    println!("{tags:#?}");
 
     let options = Options {
-        tags: Some(vec![tag_infos[0].clone()]),
+        tags: Some(vec![tags[0].clone()]),
         word_count: Some(WordCountRange::RangeFrom(90_0000..)),
         ..Default::default()
     };
