@@ -15,16 +15,16 @@ build = "build.rs"
 
 [dependencies]
 # https://github.com/dtolnay/thiserror
-thiserror = { version = "1.0.39", default-features = false }
+thiserror = { version = "1.0.40", default-features = false }
 # https://github.com/serde-rs/serde
-serde = { version = "1.0.156", default-features = false, features = [
+serde = { version = "1.0.158", default-features = false, features = [
   "std",
   "derive",
 ] }
 # https://github.com/dtolnay/async-trait
-async-trait = { version = "0.1.66", default-features = false }
+async-trait = { version = "0.1.68", default-features = false }
 # https://github.com/tokio-rs/tokio
-tokio = { version = "1.26.0", default-features = false, features = [
+tokio = { version = "1.27.0", default-features = false, features = [
   "fs",
   "sync",
   "rt-multi-thread",
@@ -45,7 +45,7 @@ simdutf8 = { version = "0.1.4", default-features = false, features = [
   "aarch64_neon",
 ] }
 # https://github.com/serde-rs/json
-serde_json = { version = "1.0.94", default-features = false, features = [
+serde_json = { version = "1.0.95", default-features = false, features = [
   "std",
 ] }
 # https://github.com/causal-agent/scraper
@@ -91,7 +91,7 @@ http = { version = "0.2.9", default-features = false }
 # https://github.com/servo/rust-url
 url = { version = "2.3.1", default-features = false, features = ["serde"] }
 # https://github.com/seanmonstar/reqwest
-reqwest = { version = "0.11.14", default-features = false, features = [
+reqwest = { version = "0.11.16", default-features = false, features = [
   "rustls-tls",
   "cookies",
   "gzip",
@@ -103,7 +103,7 @@ reqwest = { version = "0.11.14", default-features = false, features = [
 # https://github.com/seanmonstar/warp
 warp = { version = "0.3.3", default-features = false }
 # https://github.com/image-rs/image
-image = { version = "0.24.5", default-features = false, features = [
+image = { version = "0.24.6", default-features = false, features = [
   "png",
   "jpeg",
   "jpeg_rayon",
@@ -116,13 +116,13 @@ async-compression = { version = "0.3.15", default-features = false, features = [
   "zstd",
 ] }
 # https://github.com/SeaQL/sea-orm
-sea-orm = { version = "0.11.1", default-features = false, features = [
+sea-orm = { version = "0.11.2", default-features = false, features = [
   "with-chrono",
   "sqlx-sqlite",
   "runtime-tokio-rustls",
 ] }
 # https://github.com/SeaQL/sea-orm
-sea-orm-migration = { version = "0.11.1", default-features = false }
+sea-orm-migration = { version = "0.11.2", default-features = false }
 # https://github.com/toml-rs/toml
 toml = { version = "0.7.3", default-features = false, features = [
   "parse",
@@ -141,13 +141,13 @@ portpicker = { version = "0.1.1", default-features = false }
 
 [dev-dependencies]
 # https://github.com/dtolnay/anyhow
-anyhow = { version = "1.0.69", default-features = false, features = ["std"] }
+anyhow = { version = "1.0.70", default-features = false, features = ["std"] }
 # https://github.com/rust-pretty-assertions/rust-pretty-assertions
 pretty_assertions = { version = "1.3.0", default-features = false, features = [
   "std",
 ] }
 # https://github.com/tokio-rs/tokio
-tokio = { version = "1.26.0", default-features = false, features = [
+tokio = { version = "1.27.0", default-features = false, features = [
   "macros",
   "fs",
   "rt-multi-thread",
