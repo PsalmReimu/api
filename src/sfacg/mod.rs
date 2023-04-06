@@ -463,7 +463,7 @@ impl SfacgClient {
     }
 
     fn parse_image_url(line: &str) -> Option<Url> {
-        let begin = line.find("https");
+        let begin = line.find("http");
         let end = line.find("[/img]");
 
         if begin.is_none() || end.is_none() {
