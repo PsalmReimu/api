@@ -51,7 +51,7 @@ serde_json = { version = "1.0.95", default-features = false, features = [
 # https://github.com/causal-agent/scraper
 scraper = { version = "0.16.0", default-features = false }
 # https://github.com/uuid-rs/uuid
-uuid = { version = "1.3.0", default-features = false, features = [
+uuid = { version = "1.3.1", default-features = false, features = [
   "std",
   "v4",
   "fast-rng",
@@ -129,7 +129,7 @@ toml = { version = "0.7.3", default-features = false, features = [
   "display",
 ] }
 # https://github.com/hwchen/keyring-rs
-keyring = { version = "2.0.1", default-features = false, features = [
+keyring = { version = "2.0.2", default-features = false, features = [
   "linux-secret-service-rt-tokio-crypto-rust",
 ] }
 # https://github.com/Hanaasagi/machine-uid
