@@ -18,6 +18,7 @@ Apis of sfacg and ciweimao
 
 ## Dependencies
 
+- Clang
 - CMake
 
 If you are using Windows, you also need:
