@@ -6,7 +6,7 @@ pub(crate) fn check_response(code: String, tip: Option<String>) -> Result<(), Er
     if code != CiweimaoClient::OK {
         Err(Error::NovelApi(format!(
             "ciweimao request failed, code: `{code}`, msg: `{}`",
-            tip.unwrap()
+            tip.unwrap().trim()
         )))
     } else {
         Ok(())

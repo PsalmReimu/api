@@ -9,6 +9,7 @@ pub use self::dir::*;
 pub use self::keyring::*;
 pub use self::timing::*;
 
+// TODO use https://doc.rust-lang.org/std/option/enum.Option.html#method.is_some_and
 #[must_use]
 #[inline]
 pub fn is_some_and<T, F>(option: Option<T>, f: F) -> bool

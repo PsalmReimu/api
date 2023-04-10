@@ -34,7 +34,7 @@ impl Status {
         if !self.ok() {
             return Err(Error::Http {
                 code: StatusCode::from_u16(self.http_code)?,
-                msg: self.msg.unwrap(),
+                msg: self.msg.unwrap().trim().to_string(),
             })?;
         }
 

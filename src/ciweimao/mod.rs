@@ -278,11 +278,13 @@ impl Client for CiweimaoClient {
                 let response = self.get_rss(url).await?;
                 let bytes = response.bytes().await?;
 
-                self.db().await?.insert_image(url, &bytes).await?;
-
-                Ok(Reader::new(Cursor::new(bytes))
+                let image = Reader::new(Cursor::new(&bytes))
                     .with_guessed_format()?
-                    .decode()?)
+                    .decode()?;
+
+                self.db().await?.insert_image(url, bytes).await?;
+
+                Ok(image)
             }
         }
     }
@@ -318,26 +320,33 @@ impl Client for CiweimaoClient {
     }
 
     async fn favorite_infos(&self) -> Result<Vec<u32>, Error> {
-        let response: FavoritesResponse = self
-            .post(
-                "/bookshelf/get_shelf_book_list_new",
-                &FavoritesRequest {
-                    app_version: CiweimaoClient::APP_VERSION,
-                    device_token: CiweimaoClient::DEVICE_TOKEN,
-                    account: self.account(),
-                    login_token: self.login_token(),
-                    shelf_id: self.shelf_list().await?,
-                },
-            )
-            .await?;
-        check_response(response.code, response.tip)?;
-
+        let shelf_ids = self.shelf_list().await?;
         let mut result = Vec::new();
-        if response.data.is_some() {
-            for novel_info in response.data.unwrap().book_list {
-                result.push(novel_info.book_info.book_id.parse::<u32>()?);
+
+        for shelf_id in shelf_ids {
+            let response: FavoritesResponse = self
+                .post(
+                    "/bookshelf/get_shelf_book_list_new",
+                    &FavoritesRequest {
+                        app_version: CiweimaoClient::APP_VERSION,
+                        device_token: CiweimaoClient::DEVICE_TOKEN,
+                        account: self.account(),
+                        login_token: self.login_token(),
+                        shelf_id,
+                    },
+                )
+                .await?;
+            check_response(response.code, response.tip)?;
+
+            if response.data.is_some() {
+                for novel_info in response.data.unwrap().book_list {
+                    result.push(novel_info.book_info.book_id.parse::<u32>()?);
+                }
             }
         }
+
+        result.sort_unstable();
+        result.dedup();
 
         Ok(result)
     }
@@ -782,7 +791,8 @@ impl CiweimaoClient {
         Ok(response.data.unwrap().command)
     }
 
-    async fn shelf_list(&self) -> Result<u32, Error> {
+    // NOTE book_limit = 50
+    async fn shelf_list(&self) -> Result<Vec<u32>, Error> {
         let response: ShelfListResponse = self
             .post(
                 "/bookshelf/get_shelf_list",
@@ -796,9 +806,14 @@ impl CiweimaoClient {
             .await?;
         check_response(response.code, response.tip)?;
 
-        Ok(response.data.unwrap().shelf_list[0]
-            .shelf_id
-            .parse::<u32>()?)
+        let mut result = Vec::new();
+        if response.data.is_some() {
+            for shelf in response.data.unwrap().shelf_list {
+                result.push(shelf.shelf_id.parse::<u32>()?);
+            }
+        }
+
+        Ok(result)
     }
 
     fn parse_data_time<T>(str: T) -> Option<NaiveDateTime>

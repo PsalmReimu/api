@@ -250,11 +250,13 @@ impl Client for SfacgClient {
                 let response = self.get_rss(url).await?;
                 let bytes = response.bytes().await?;
 
-                self.db().await?.insert_image(url, &bytes).await?;
-
-                Ok(Reader::new(Cursor::new(bytes))
+                let image = Reader::new(Cursor::new(&bytes))
                     .with_guessed_format()?
-                    .decode()?)
+                    .decode()?;
+
+                self.db().await?.insert_image(url, bytes).await?;
+
+                Ok(image)
             }
         }
     }

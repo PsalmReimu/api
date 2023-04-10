@@ -68,11 +68,11 @@ impl NovelDB {
 
     pub(crate) async fn find_text(&self, info: &ChapterInfo) -> Result<FindTextResult, Error> {
         let identifier = info.identifier.to_string();
-        let time = info.update_time;
 
         match Text::find_by_id(identifier).one(&self.db).await? {
             Some(model) => {
                 let saved_data_time = model.date_time;
+                let time = info.update_time;
 
                 if time.is_some()
                     && saved_data_time.is_some()
