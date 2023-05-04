@@ -17,14 +17,14 @@ build = "build.rs"
 # https://github.com/dtolnay/thiserror
 thiserror = { version = "1.0.40", default-features = false }
 # https://github.com/serde-rs/serde
-serde = { version = "1.0.159", default-features = false, features = [
+serde = { version = "1.0.160", default-features = false, features = [
   "std",
   "derive",
 ] }
 # https://github.com/dtolnay/async-trait
 async-trait = { version = "0.1.68", default-features = false }
 # https://github.com/tokio-rs/tokio
-tokio = { version = "1.27.0", default-features = false, features = [
+tokio = { version = "1.28.0", default-features = false, features = [
   "fs",
   "sync",
   "rt-multi-thread",
@@ -45,13 +45,13 @@ simdutf8 = { version = "0.1.4", default-features = false, features = [
   "aarch64_neon",
 ] }
 # https://github.com/serde-rs/json
-serde_json = { version = "1.0.95", default-features = false, features = [
+serde_json = { version = "1.0.96", default-features = false, features = [
   "std",
 ] }
 # https://github.com/causal-agent/scraper
 scraper = { version = "0.16.0", default-features = false }
 # https://github.com/uuid-rs/uuid
-uuid = { version = "1.3.1", default-features = false, features = [
+uuid = { version = "1.3.2", default-features = false, features = [
   "std",
   "v4",
   "fast-rng",
@@ -81,7 +81,7 @@ base64-simd = { version = "0.8.0", default-features = false, features = [
 # https://github.com/cloudflare/boring
 boring = { version = "2.1.0", default-features = false }
 # https://github.com/dirs-dev/directories-rs
-directories = { version = "5.0.0", default-features = false }
+directories = { version = "5.0.1", default-features = false }
 # https://github.com/pfernie/cookie_store
 cookie_store = { version = "0.19.0", default-features = false }
 # https://github.com/pfernie/reqwest_cookie_store
@@ -91,7 +91,7 @@ http = { version = "0.2.9", default-features = false }
 # https://github.com/servo/rust-url
 url = { version = "2.3.1", default-features = false, features = ["serde"] }
 # https://github.com/seanmonstar/reqwest
-reqwest = { version = "0.11.16", default-features = false, features = [
+reqwest = { version = "0.11.17", default-features = false, features = [
   "rustls-tls",
   "cookies",
   "gzip",
@@ -101,7 +101,7 @@ reqwest = { version = "0.11.16", default-features = false, features = [
   "trust-dns",
 ] }
 # https://github.com/seanmonstar/warp
-warp = { version = "0.3.4", default-features = false }
+warp = { version = "0.3.5", default-features = false }
 # https://github.com/image-rs/image
 image = { version = "0.24.6", default-features = false, features = [
   "png",
@@ -116,13 +116,13 @@ async-compression = { version = "0.3.15", default-features = false, features = [
   "zstd",
 ] }
 # https://github.com/SeaQL/sea-orm
-sea-orm = { version = "0.11.2", default-features = false, features = [
+sea-orm = { version = "0.11.3", default-features = false, features = [
   "with-chrono",
   "sqlx-sqlite",
   "runtime-tokio-rustls",
 ] }
 # https://github.com/SeaQL/sea-orm
-sea-orm-migration = { version = "0.11.2", default-features = false }
+sea-orm-migration = { version = "0.11.3", default-features = false }
 # https://github.com/toml-rs/toml
 toml = { version = "0.7.3", default-features = false, features = [
   "parse",
@@ -135,19 +135,19 @@ keyring = { version = "2.0.2", default-features = false, features = [
 # https://github.com/Hanaasagi/machine-uid
 machine-uid = { version = "0.3.0", default-features = false }
 # https://github.com/Seeker14491/opener
-opener = { version = "0.6.0", default-features = false }
+opener = { version = "0.6.1", default-features = false }
 # https://github.com/Dentosal/portpicker-rs
 portpicker = { version = "0.1.1", default-features = false }
 
 [dev-dependencies]
 # https://github.com/dtolnay/anyhow
-anyhow = { version = "1.0.70", default-features = false, features = ["std"] }
+anyhow = { version = "1.0.71", default-features = false, features = ["std"] }
 # https://github.com/rust-pretty-assertions/rust-pretty-assertions
 pretty_assertions = { version = "1.3.0", default-features = false, features = [
   "std",
 ] }
 # https://github.com/tokio-rs/tokio
-tokio = { version = "1.27.0", default-features = false, features = [
+tokio = { version = "1.28.0", default-features = false, features = [
   "macros",
   "fs",
   "rt-multi-thread",
