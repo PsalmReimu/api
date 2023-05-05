@@ -17,7 +17,7 @@ build = "build.rs"
 # https://github.com/dtolnay/thiserror
 thiserror = { version = "1.0.40", default-features = false }
 # https://github.com/serde-rs/serde
-serde = { version = "1.0.160", default-features = false, features = [
+serde = { version = "1.0.161", default-features = false, features = [
   "std",
   "derive",
 ] }
