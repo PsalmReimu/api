@@ -10,10 +10,12 @@ All notable changes to this project will be documented in this file.
 
 ### <!-- 7 -->⚙️ Miscellaneous Tasks
 
+- Update deps
+- Add git-cliff to generate changelog
 - Remove redundant install action
 - Update app version
 - Update deps
-- Pre-commit autoupdate (#12)
+- Pre-commit autoupdate ([#12](https://github.com/novel-rs/api/issues/12))
 
 ## [0.4.0] - 2023-04-10
 
@@ -58,15 +60,15 @@ All notable changes to this project will be documented in this file.
 
 - Update deps
 - Update deps
-- Update machine-uid requirement from 0.2.0 to 0.3.0 (#10)
-- Pre-commit autoupdate (#11)
+- Update machine-uid requirement from 0.2.0 to 0.3.0 ([#10](https://github.com/novel-rs/api/issues/10))
+- Pre-commit autoupdate ([#11](https://github.com/novel-rs/api/issues/11))
 - Update deps
-- Update opener requirement from 0.5.2 to 0.6.0 (#9)
-- Update directories requirement from 4.0.1 to 5.0.0 (#8)
-- Pre-commit autoupdate (#7)
+- Update opener requirement from 0.5.2 to 0.6.0 ([#9](https://github.com/novel-rs/api/issues/9))
+- Update directories requirement from 4.0.1 to 5.0.0 ([#8](https://github.com/novel-rs/api/issues/8))
+- Pre-commit autoupdate ([#7](https://github.com/novel-rs/api/issues/7))
 - Update deps
 - Update deps
-- Pre-commit autoupdate (#4)
+- Pre-commit autoupdate ([#4](https://github.com/novel-rs/api/issues/4))
 - Update
 - Update deps
 - Update example
