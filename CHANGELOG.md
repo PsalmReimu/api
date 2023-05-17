@@ -4,12 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 
+### <!-- 2 -->🚜 Refactor
+
+- Some minor modifications to the client
+- Modify some log output
+- Modify some log output
+
 ### <!-- 3 -->📚 Documentation
 
 - Update README.md
 
 ### <!-- 7 -->⚙️ Miscellaneous Tasks
 
+- Update deps
+- Update deps
+- Remove outdated action
+- Update deps
+- Change cliff.toml
 - Update deps
 - Add git-cliff to generate changelog
 - Remove redundant install action
