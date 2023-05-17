@@ -10,7 +10,7 @@ use reqwest::Response;
 use semver::{Version, VersionReq};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use tokio::{fs, sync::OnceCell};
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 use url::Url;
 
 use crate::{CiweimaoClient, Error, HTTPClient, NovelDB};
@@ -268,7 +268,7 @@ impl CiweimaoClient {
 impl Drop for CiweimaoClient {
     fn drop(&mut self) {
         if let Err(error) = self.do_shutdown() {
-            warn!("Fail to save config file: `{error}`");
+            error!("Fail to save config file: `{error}`");
         }
     }
 }

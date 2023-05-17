@@ -9,7 +9,7 @@ use std::{
 use async_trait::async_trait;
 use image::{io::Reader, DynamicImage};
 use tokio::sync::OnceCell;
-use tracing::warn;
+use tracing::error;
 use url::Url;
 
 use crate::{
@@ -469,7 +469,7 @@ impl SfacgClient {
         let end = line.find("[/img]");
 
         if begin.is_none() || end.is_none() {
-            warn!("Image URL format is incorrect: {line}");
+            error!("Image URL format is incorrect: {line}");
             return None;
         }
 
@@ -487,7 +487,7 @@ impl SfacgClient {
         match Url::parse(&url) {
             Ok(url) => Some(url),
             Err(error) => {
-                warn!("Image URL parse failed: {error}, content: {line}");
+                error!("Image URL parse failed: {error}, content: {line}");
                 None
             }
         }

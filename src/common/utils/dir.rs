@@ -1,7 +1,7 @@
 use std::{env, path::PathBuf};
 
 use directories::{ProjectDirs, UserDirs};
-use tracing::warn;
+use tracing::error;
 
 use crate::Error;
 
@@ -21,7 +21,7 @@ pub fn config_dir_path(app_name: &str) -> Result<PathBuf, Error> {
     match ProjectDirs::from("", "", app_name) {
         Some(dir) => Ok(dir.config_dir().to_path_buf()),
         None => {
-            warn!("Failed to get the path to the project's config directory, using the current working directory");
+            error!("Failed to get the path to the project's config directory, using the current working directory");
             Ok(env::current_dir()?)
         }
     }
@@ -32,7 +32,7 @@ pub fn data_dir_path(app_name: &str) -> Result<PathBuf, Error> {
     match ProjectDirs::from("", "", app_name) {
         Some(dir) => Ok(dir.data_local_dir().to_path_buf()),
         None => {
-            warn!("Failed to get the path to the project's local data directory, using the current working directory");
+            error!("Failed to get the path to the project's local data directory, using the current working directory");
             Ok(env::current_dir()?)
         }
     }

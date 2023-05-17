@@ -14,7 +14,7 @@ use reqwest::{
 };
 use reqwest_cookie_store::{CookieStore, CookieStoreMutex};
 use tokio::fs;
-use tracing::{info, warn};
+use tracing::{error, info};
 use url::Url;
 
 use crate::Error;
@@ -260,7 +260,7 @@ impl Deref for HTTPClient {
 impl Drop for HTTPClient {
     fn drop(&mut self) {
         if let Err(error) = self.shutdown() {
-            warn!("Fail to save cookie: {error}");
+            error!("Fail to save cookie: {error}");
         }
     }
 }

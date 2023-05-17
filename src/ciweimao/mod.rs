@@ -20,7 +20,7 @@ use parking_lot::RwLock;
 use scraper::{Html, Selector};
 use serde_json::json;
 use tokio::sync::{mpsc, oneshot, OnceCell};
-use tracing::{info, warn};
+use tracing::{error, info};
 use url::Url;
 use warp::{http::Response, Filter};
 
@@ -828,7 +828,7 @@ impl CiweimaoClient {
         match NaiveDateTime::from_str(&str.replace(' ', "T")) {
             Ok(data_time) => Some(data_time),
             Err(error) => {
-                warn!("`NaiveDateTime` parse failed: {error}, content: {str}");
+                error!("`NaiveDateTime` parse failed: {error}, content: {str}");
                 None
             }
         }
@@ -847,7 +847,7 @@ impl CiweimaoClient {
         match str.parse::<E>() {
             Ok(word_count) => Some(word_count),
             Err(_) => {
-                warn!("`Number` parse failed: conetent: {str}");
+                error!("`Number` parse failed: conetent: {str}");
                 None
             }
         }
@@ -881,7 +881,7 @@ impl CiweimaoClient {
         match Url::parse(str) {
             Ok(url) => Some(url),
             Err(error) => {
-                warn!("`Url` parse failed: {error}, content: {str}");
+                error!("`Url` parse failed: {error}, content: {str}");
                 None
             }
         }
@@ -905,7 +905,7 @@ impl CiweimaoClient {
             if tags.iter().any(|item| item.name == name) {
                 result.push(Tag { id: None, name });
             } else {
-                warn!("This tag is not a system tag and is ignored");
+                info!("This tag is not a system tag and is ignored: {name}");
             }
         }
 
@@ -931,12 +931,12 @@ impl CiweimaoClient {
             Ok(index) => match categories.iter().find(|item| item.id == Some(index)) {
                 Some(category) => Ok(Some(category.clone())),
                 None => {
-                    warn!("The category index does not exist: {str}");
+                    error!("The category index does not exist: {str}");
                     Ok(None)
                 }
             },
             Err(error) => {
-                warn!("`category_index` parse failed: {error}");
+                error!("`category_index` parse failed: {error}");
                 Ok(None)
             }
         }
@@ -978,14 +978,14 @@ impl CiweimaoClient {
 
         let element = fragment.select(&selector).next();
         if element.is_none() {
-            warn!("No `img` element exists: {str}");
+            error!("No `img` element exists: {str}");
             return None;
         }
         let element = element.unwrap();
 
         let url = element.value().attr("src");
         if url.is_none() {
-            warn!("No `src` attribute exists: {str}");
+            error!("No `src` attribute exists: {str}");
             return None;
         }
         let url = url.unwrap();
