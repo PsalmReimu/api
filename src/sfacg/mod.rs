@@ -184,7 +184,7 @@ impl Client for SfacgClient {
                     word_count,
                     update_time,
                     is_vip: Some(chapter.is_vip),
-                    accessible: Some(chapter.need_fire_money == 0),
+                    is_accessible: Some(chapter.need_fire_money == 0),
                     is_valid: None,
                 };
 
@@ -290,7 +290,7 @@ impl Client for SfacgClient {
         Ok(result)
     }
 
-    async fn favorite_infos(&self) -> Result<Vec<u32>, Error> {
+    async fn bookshelf_infos(&self) -> Result<Vec<u32>, Error> {
         let response = self
             .get_query(
                 "/user/Pockets",

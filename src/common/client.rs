@@ -108,7 +108,7 @@ pub struct ChapterInfo {
     /// Whether this chapter can only be read by VIP users
     pub is_vip: Option<bool>,
     /// Is the chapter accessible
-    pub accessible: Option<bool>,
+    pub is_accessible: Option<bool>,
     /// Is the chapter valid
     pub is_valid: Option<bool>,
     /// Word count
@@ -118,10 +118,19 @@ pub struct ChapterInfo {
 }
 
 impl ChapterInfo {
+    /// Is this chapter available
+    pub fn is_accessible(&self) -> bool {
+        !crate::is_some_and(self.is_accessible.as_ref(), |x| !x)
+    }
+
+    /// Is this chapter valid
+    pub fn is_valid(&self) -> bool {
+        !crate::is_some_and(self.is_valid.as_ref(), |x| !x)
+    }
+
     /// Is this chapter available for download
     pub fn can_download(&self) -> bool {
-        !crate::is_some_and(self.accessible.as_ref(), |x| !x)
-            && !crate::is_some_and(self.is_valid.as_ref(), |x| !x)
+        self.is_accessible() && self.is_valid()
     }
 }
 
@@ -158,7 +167,7 @@ pub enum ContentInfo {
 }
 
 /// Options used by the search
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Options {
     /// Is it finished
     pub is_finished: Option<bool>,
@@ -177,6 +186,7 @@ pub struct Options {
 }
 
 /// Word count range
+#[derive(Debug)]
 pub enum WordCountRange {
     /// Set minimum and maximum word count
     Range(Range<u32>),
@@ -233,7 +243,7 @@ pub trait Client {
         T: AsRef<str> + Send + Sync;
 
     /// Get the favorite novel of the logged-in user and return the novel id
-    async fn favorite_infos(&self) -> Result<Vec<u32>, Error>;
+    async fn bookshelf_infos(&self) -> Result<Vec<u32>, Error>;
 
     /// Get all categories
     async fn categories(&self) -> Result<&Vec<Category>, Error>;

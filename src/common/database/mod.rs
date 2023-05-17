@@ -209,7 +209,7 @@ mod tests {
                 identifier: Identifier::Id(0),
                 title: Default::default(),
                 is_vip: Default::default(),
-                accessible: Default::default(),
+                is_accessible: Default::default(),
                 is_valid: Default::default(),
                 word_count: Default::default(),
                 update_time: Default::default(),

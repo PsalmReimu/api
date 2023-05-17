@@ -198,7 +198,7 @@ impl Client for CiweimaoClient {
                     word_count: CiweimaoClient::parse_number(chapter.word_count),
                     update_time: CiweimaoClient::parse_data_time(chapter.mtime),
                     is_vip: None,
-                    accessible: CiweimaoClient::parse_bool(chapter.auth_access),
+                    is_accessible: CiweimaoClient::parse_bool(chapter.auth_access),
                     is_valid: CiweimaoClient::parse_bool(chapter.is_valid),
                 };
 
@@ -319,7 +319,7 @@ impl Client for CiweimaoClient {
         Ok(result)
     }
 
-    async fn favorite_infos(&self) -> Result<Vec<u32>, Error> {
+    async fn bookshelf_infos(&self) -> Result<Vec<u32>, Error> {
         let shelf_ids = self.shelf_list().await?;
         let mut result = Vec::new();
 
