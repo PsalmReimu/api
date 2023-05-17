@@ -828,7 +828,7 @@ impl CiweimaoClient {
         match NaiveDateTime::from_str(&str.replace(' ', "T")) {
             Ok(data_time) => Some(data_time),
             Err(error) => {
-                error!("`NaiveDateTime` parse failed: {error}, content: {str}");
+                error!("NaiveDateTime parse failed: {error}, content: {str}");
                 None
             }
         }
@@ -847,7 +847,7 @@ impl CiweimaoClient {
         match str.parse::<E>() {
             Ok(word_count) => Some(word_count),
             Err(_) => {
-                error!("`Number` parse failed: conetent: {str}");
+                error!("Number parse failed: conetent: {str}");
                 None
             }
         }
@@ -881,7 +881,7 @@ impl CiweimaoClient {
         match Url::parse(str) {
             Ok(url) => Some(url),
             Err(error) => {
-                error!("`Url` parse failed: {error}, content: {str}");
+                error!("Url parse failed: {error}, content: {str}");
                 None
             }
         }
@@ -936,7 +936,7 @@ impl CiweimaoClient {
                 }
             },
             Err(error) => {
-                error!("`category_index` parse failed: {error}");
+                error!("category_index parse failed: {error}");
                 Ok(None)
             }
         }
