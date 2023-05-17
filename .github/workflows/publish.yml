@@ -34,7 +34,7 @@ jobs:
 
       # https://github.com/JesseTG/rm
       - name: Remove File
-        uses: JesseTG/rm@v1
+        uses: JesseTG/rm@v1.0.3
         with:
           path: semver-checks
 
