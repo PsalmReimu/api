@@ -124,7 +124,7 @@ sea-orm = { version = "0.11.3", default-features = false, features = [
 # https://github.com/SeaQL/sea-orm
 sea-orm-migration = { version = "0.11.3", default-features = false }
 # https://github.com/toml-rs/toml
-toml = { version = "0.7.3", default-features = false, features = [
+toml = { version = "0.7.4", default-features = false, features = [
   "parse",
   "display",
 ] }
